@@ -15,6 +15,8 @@ cd cactus
 python3 -m pip install -U setuptools pip wheel
 python3 -m pip install -U .
 python3 -m pip install -U -r ./toil-requirement.txt
-### Install vg
-conda install -c conda-forge -c bioconda vg
+### Instal vg
+conda install bioconda::vg
+### Install panacus
+conda install -c conda-forge -c bioconda panacus
 ```
