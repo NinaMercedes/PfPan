@@ -19,6 +19,9 @@ python3 -m pip install -U -r ./toil-requirement.txt
 conda install bioconda::vg
 ### Install panacus
 conda install -c conda-forge -c bioconda panacus
+### Clone this repository
+cd ~
+
 ```
 ## Optional Stage: Retrieving assemblies
 Assemblies were retrieved from Malariagen Pf3k database. These 
