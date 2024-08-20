@@ -26,6 +26,7 @@ cd ~
 git clone https://github.com/NinaMercedes/pangenomes.git
 cd pangenomes
 ```
+
 ## Optional Stage: Retrieving assemblies
 Assemblies were retrieved from Malariagen Pf3k database. These can obtained using the code below. 
 ```
@@ -33,6 +34,12 @@ Assemblies were retrieved from Malariagen Pf3k database. These can obtained usin
 python "./pipeline/wget_pf3k_fasta.py" --file_path https://ftp.sanger.ac.uk/pub/project/pathogens/Plasmodium/falciparum/PF3K/ReferenceGenomes_Version1/GENOMES/
 ```
 
-##
+## Step 1. Make a seq file
+The seq file is a two column text file used by cactus pangenome that maps the sample names to their paths. This could be produced manually, one column with sample names and one column with the paths (spaced separately). Here a python script has been written to automate this (anything before the first '.' has been used as the sample name). 
+```
+### Again we chose to do this in the pangenomes directory.
+python "./pipeline/make_seqtxt.py" --file_name pf3k_seq.txt
+```
+
 
 
