@@ -20,3 +20,8 @@ conda install bioconda::vg
 ### Install panacus
 conda install -c conda-forge -c bioconda panacus
 ```
+## Optional Stage: Retrieving assemblies
+Assemblies were retrieved from Malariagen Pf3k database. These 
+
+
+
