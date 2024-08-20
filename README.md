@@ -41,5 +41,10 @@ The seq file is a two column text file used by cactus pangenome that maps the sa
 python "./pipeline/make_seqtxt.py" --file_name pf3k_seq.txt
 ```
 
+### Step 2. Make a pangenome graph (or graphs!)
+After making the seq text file, we are now ready to make the pangenome graph. This github link has further details on how this is erformed as well as some of the downstream analysis (https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/sa_refgraph_hackathon_2023.md#short-read-mapping). Although a pangenome is described as somewhat reference-free, we are still required to input some of these sequences 
+
+
+
 
 
