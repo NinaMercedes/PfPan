@@ -65,11 +65,12 @@ python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_v2b --ref_name P
 
 
 
-## Step 4. Align short reads and make gaf and BAM files
+## Step 4. Mapping short reads, make gaf and genotype
 This is quite computationally intensive and requires the input of fastq files. Within the python script the short read fastq files are generated from bam/cram files that have been stored on the server (due to space requirements). This process is optional.
 
 The BAM files produced here can be utilised for de novo variant calling (different to genotyping) using linear variant callers such as GATK, DeepVariant (Docker required, currently trained on human data), or your variant caller of choice! Could be more to come on this (watch this space!). 
 
+### Optional Stage: Surject to BAM
 
 ## Step 5. Genotyping (or variant calling) from the graph
 We will first start with using vg to genotype from the graph. 
