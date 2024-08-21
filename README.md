@@ -47,7 +47,10 @@ After making the seq text file, we are now ready to make the pangenome graph. Th
 python "./pipeline/make_pangenome.py" --prefix pf_pan_v1 --seqfile pf3k_seq.txt --ref_name Pf3D7
 python "./pipeline/make_pangenome.py" --prefix pf_pan_v2 --seqfile pf3k_seq.txt --ref_name PfDd2 
 ```
+## Step 3. Get pangenome statistics
+We can get pangenome statistics from the use of the cactus-mingraph (e.g. "pf_pan_v1.stats.tgz"), this includes sample, paths and graph statistics. Panacus is also a useful package to explore pangenome statistics, including a coverage histogram, pangenome growth statistics and path-/group-resolved coverage table. Panacus relies on 'countable' features including nodes, edges and base pairs. Coverage is defined as the number of distinct paths including the countable. Meanwhile, 'quorum' is the proportion of paths in which one of the countable features needs to be present to be considered part of the core. Essentially using this tool we can estimate the number of 'common' and 'core' bases in the pangenome and look at how the addition of samples affects its growth using growth curves and statistics. 
 
+````
 
-
+```
 
