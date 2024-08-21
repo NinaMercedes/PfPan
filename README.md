@@ -59,5 +59,6 @@ cd pf_pan_v1b_Pf3D7_pan
 python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_v1b --ref_name Pf3D7 --graph_gfa pf_pan_v1b.gfa.gz --graph_gbz pf_pan_v1b.gbz
 cd ~/pangenomes/pf_pan_v2b_PfDd2_pan
 python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_v2b --ref_name PfDd2 --graph_gfa pf_pan_v2b.gfa.gz --graph_gbz pf_pan_v2b.gbz
+
 ```
 
