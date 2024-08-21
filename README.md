@@ -66,8 +66,12 @@ python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_v2b --ref_name P
 
 
 ## Step 4. Mapping short reads, make gaf and genotype
-This is quite computationally intensive and requires the input of fastq files. Within the python script the short read fastq files are generated from bam/cram files that have been stored on the server (due to space requirements). This process is optional. However, if running straight from fastq, please use the naming format: 'sample_name.R1.fastq.gz and sample_name.R2.fastq.gz". 
+This is quite computationally intensive and requires the input of fastq files. Within the python script the short read fastq files are generated from bam/cram files that have been stored on the server (due to space requirements). This process is optional. However, if running straight from fastq, please use the naming format: 'sample_name.R1.fastq.gz and sample_name.R2.fastq.gz". There is also an option to remove fastq files (default: False) to save space. This is not reccomended if you would like to continue using your fastq files.
 
+```
+cd ~/pangenomes/pf_pan_v2b_PfDd2_pan
+
+```
 The BAM files produced here can be utilised for de novo variant calling (different to genotyping) using linear variant callers such as GATK, DeepVariant (Docker required, currently trained on human data), or your variant caller of choice! Could be more to come on this (watch this space!). 
 
 ### Optional Stage: Surject to BAM- illumina only
