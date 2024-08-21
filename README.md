@@ -1,5 +1,5 @@
 # Pangenomes: The *Plasmodium falciparum* pangenome
-This repository contains code to perform pangenomics research. Currently the code is implemented predominantly using python scripts. 
+This repository contains code to perform pangenomics research. Currently the code is implemented predominantly using python scripts. Depending on usability, these scripts may be updated in the future and built into Nextflow or Snakemake pipelines (suggestions welcome!).
 
 ## Conda environment and installing packages
 The first step is to set up a conda environment with all the python libraries and modules required to make and analyse a pangenome. 
@@ -61,4 +61,11 @@ cd ~/pangenomes/pf_pan_v2b_PfDd2_pan
 python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_v2b --ref_name PfDd2 --graph_gfa pf_pan_v2b.gfa.gz --graph_gbz pf_pan_v2b.gbz
 
 ```
+
+## Step 4. Genotyping (or variant calling) from the graph
+We will first start with using vg to genotype from the graph
+
+
+### Optional Stage: Align short reads and makin BAM files
+This has been listed as an optional step as it is quite computationally intensive. The BAM files produced here can be utilised for de novo variant calling (different to genotyping) using linear variant callers such as GATK, DeepVariant (Docker required, currently trained on human data), or your variant caller of choice! Could be more to come on this (watch this space!). 
 
