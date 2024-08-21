@@ -42,9 +42,10 @@ python "./pipeline/make_seqtxt.py" --file_name pf3k_seq.txt
 ```
 
 ## Step 2. Make a pangenome graph (or graphs!)
-After making the seq text file, we are now ready to make the pangenome graph. This github link has further details on how this is erformed as well as some of the downstream analysis (https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/sa_refgraph_hackathon_2023.md#short-read-mapping). Although a pangenome is described as somewhat reference-free, we are still required to input a reference sequence to project variants on. This can help us to interpret variants called or genotyped from the graph. Minigraph-Cactus uses the reference sequence as a backbone and the choice of reference can influence the topology of the graph. Minigraph-Cactus does permit the use of more than one reference. We can explore the use of both Pf3D7 (West Africa origin) and the dd2 (Indochina origin) reference strains to assess the impact.
+After making the seq text file, we are now ready to make the pangenome graph. This github link has further details on how this is erformed as well as some of the downstream analysis (https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/sa_refgraph_hackathon_2023.md#short-read-mapping). Although a pangenome is described as somewhat reference-free, we are still required to input a reference sequence to project variants on. This can help us to interpret variants called or genotyped from the graph. Minigraph-Cactus uses the reference sequence as a backbone and the choice of reference can influence the topology of the graph. Minigraph-Cactus does permit the use of more than one reference. We can explore the use of both Pf3D7 (West Africa origin) and the PfDd2 (Indochina origin) reference strains to assess the impact.
 ```
-python "./pipeline/make_pangenome.py" --prefix pf_pangenome_v1 --seqfile pf3k_seq.txt --ref_name Pf3D7 
+python "./pipeline/make_pangenome.py" --prefix pf_pan_v1 --seqfile pf3k_seq.txt --ref_name Pf3D7
+python "./pipeline/make_pangenome.py" --prefix pf_pan_v2 --seqfile pf3k_seq.txt --ref_name PfDd2 
 ```
 
 
