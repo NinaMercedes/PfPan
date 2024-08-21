@@ -1,4 +1,4 @@
-# Pangenomes: The Plasmodium falciparum pangenome
+# Pangenomes: The *Plasmodium falciparum* pangenome
 This repository contains code to perform pangenomics research. Currently the code is implemented predominantly using python scripts. 
 
 ## Conda environment and installing packages
