@@ -5,6 +5,7 @@ This repository contains code to perform pangenomics research. Currently the cod
 The first step is to set up a conda environment with all the python libraries and modules required to make and analyse a pangenome. 
 ```
 conda create -n pangenomes
+conda activate pangenomes
 ### First we need to install fastq2matrix and some dependencies
 git clone https://github.com/LSHTMPathogenSeqLab/fastq2matrix.git
 conda install python=3.8 bwa samtools bcftools parallel datamash gatk4=4.1.4.1 delly tqdm trimmomatic minimap2 biopython bedtools r-ggplot2 iqtree
