@@ -74,6 +74,17 @@ This is quite computationally intensive and requires the input of fastq files. W
 ```
 mkdir output
 
+#### make BAM
+## get paths from full graph
+#vg paths -x ./pf_pan_2024.full.gbz -S Pf3D7 -L > Pf3D7.paths.txt
+### surject to bam using d2 graph
+vg surject -x ./pf_pan_2024.full.gbz -G ./output/ERR012227.gaf.gz --interleaved -F Pf3D7.paths.txt -b -N ERR012227 -R 'ID:1 LB:lib1 SM:./output/ERR012227 PL:illumina PU:unit1' > ./output/ERR012227.bam
+
+
+#vg paths -x  ./pf_pan_2024.gbz z -S Pf3D7 -F > ./Pf3D7_graph.fa
+#samtools faidx ./Pf3D7_graph.fa
+#gatk CreateSequenceDictionary --REFERENCE Pf3D7_graph.fa
+
 
 ```
 The BAM files produced here can be utilised for de novo variant calling (different to genotyping) using linear variant callers such as GATK, DeepVariant (Docker required, currently trained on human data), or your variant caller of choice! Could be more to come on this (watch this space!). 
