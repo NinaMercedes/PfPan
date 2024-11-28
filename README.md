@@ -21,8 +21,6 @@ conda install bioconda::vg
 ### Install panacus
 conda install bioconda::panacus
 conda install matplotlib
-## Install picard
-conda install -c bioconda picarc
 ### Clone this repository and move to the pangenomes directory
 cd ~
 git clone https://github.com/NinaMercedes/pangenomes.git
