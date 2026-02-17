@@ -55,6 +55,8 @@ python "./pipeline/make_pangenome.py" --prefix pf_pan_v2b --seqfile pf3k_seq.txt
 ## Final
 python "/mnt/storage13/nbillows/pangenome/pipeline/make_pangenome.py" --prefix pf_pan_2024 --seqfile pf3k_seq.txt --ref_name Pf3D7
 python "/mnt/storage13/nbillows/pangenome/pipeline/make_pangenome.py" --prefix PfPan --seqfile pf3k_seq_v2.txt --ref_name Pf3D7
+### Under the hood this will run
+cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt --outDir ./PfPan_Pf3D7_pan  --outName PfPan --reference Pf3D7  --filter 2  --haplo --giraffe clip filter --viz --odgi --chrom-vg clip filter --chrom-og --gbz clip filter full   --gfa clip full --vcf --vcfReference Pf3D7 --logFile ./PfPan_Pf3D7_log.log --workDir ./  --consCores 8 --mgMemory  128Gi
 source deactivate
 ```
 ## Step 3. Get pangenome statistics
