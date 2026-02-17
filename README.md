@@ -1,5 +1,5 @@
 # Pangenomes: The *Plasmodium falciparum* pangenome
-This repository contains code to perform pangenomics research. Currently the code is implemented predominantly using python scripts. Depending on usability, these scripts may be updated in the future and built into Nextflow or Snakemake pipelines (suggestions welcome!).
+This repository contains code to perform pangenomics research. Currently the code is implemented predominantly using python and shell scripts. Depending on usability, these scripts may be updated in the future and built into Nextflow or Snakemake pipelines (suggestions welcome!).
 
 ## Conda environment and installing packages
 The first step is to set up a conda environment with all the python libraries and modules required to make and analyse a pangenome. 
@@ -44,7 +44,7 @@ python "./pipeline/make_seqtxt.py" --file_name pf3k_seq.txt
 ```
 
 ## Step 2. Make a pangenome graph (or graphs!)
-After making the seq text file, we are now ready to make the pangenome graph. This github link has further details on how this is erformed as well as some of the downstream analysis (https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/sa_refgraph_hackathon_2023.md#short-read-mapping). Although a pangenome is described as somewhat reference-free, we are still required to input a reference sequence to project variants on. This can help us to interpret variants called or genotyped from the graph. Minigraph-Cactus uses the reference sequence as a backbone and the choice of reference can influence the topology of the graph. Minigraph-Cactus does permit the use of more than one reference. We can explore the use of both Pf3D7 (West Africa origin) and the PfDd2 (Indochina origin) reference strains to assess the impact.
+After making the seq text file, we are now ready to make the pangenome graph. This github link has further details on how this is erformed as well as some of the downstream analysis (https://github.com/ComparativeGenomicsToolkit/cactus/blob/master/doc/sa_refgraph_hackathon_2023.md#short-read-mapping). Although a pangenome is described as somewhat reference-free, we are still required to input a reference sequence to project variants on. This can help us to interpret variants called or genotyped from the graph. Minigraph-Cactus uses the reference sequence as a backbone and the choice of reference can influence the topology of the graph. Minigraph-Cactus does permit the use of more than one reference. We can explore the use of both Pf3D7 (West Africa origin) and the PfDd2 (Indochina origin) reference strains to assess the impact. Note in version 2 we exclude SD01, ML01 and TG01 due to contig size inconsistencies and mixed infections.
 ```
 source "/mnt/storage13/nbillows/pangenome/cactus-bin-v2.9.3/venv-cactus-v2.9.3/bin/activate" 
 python "./pipeline/make_pangenome.py" --prefix pf_pan_v1 --seqfile pf3k_seq.txt --ref_name Pf3D7
@@ -54,6 +54,7 @@ python "./pipeline/make_pangenome.py" --prefix pf_pan_v1b --seqfile pf3k_seq.txt
 python "./pipeline/make_pangenome.py" --prefix pf_pan_v2b --seqfile pf3k_seq.txt --ref_name PfDd2 
 ## Final
 python "/mnt/storage13/nbillows/pangenome/pipeline/make_pangenome.py" --prefix pf_pan_2024 --seqfile pf3k_seq.txt --ref_name Pf3D7
+python "/mnt/storage13/nbillows/pangenome/pipeline/make_pangenome.py" --prefix PfPan --seqfile pf3k_seq_v2.txt --ref_name Pf3D7
 source deactivate
 ```
 ## Step 3. Get pangenome statistics
