@@ -60,11 +60,13 @@ cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt --outDir ./PfPan_Pf3D7_pan  --
 source deactivate
 ```
 ## Step 3. Get pangenome statistics
+#######EDIT
 We can get pangenome statistics from the use of the cactus-mingraph (e.g. "pf_pan_v1.stats.tgz"), this includes sample, paths and graph statistics. Using the code below we will generate a '...basic_statistics.txt' file which will give us the number of nodes, edges and total sequence length. We will also look at the contig sizes to check the length of each haplotype in the chromosome "./pf_pan_v1_Pf3D7_pan/chrom-subproblems/contig_sizes.tsv". We can see there is a contig size of '0' for sample PfSD01- this sample was actually assembled using a different assembler so we can exclude this from our pangenome and make a new set (v1b and v2b) (Otto et al., 2018). We do this by rerunning the above but change the same of the prefix and we also manually remove PfSD01 from the seq file. Panacus is also a useful package to explore pangenome statistics, including a coverage histogram, pangenome growth statistics and path-/group-resolved coverage table. Panacus relies on 'countable' features including nodes, edges and base pairs. Coverage is defined as the number of distinct paths including the countable. Meanwhile, 'quorum' is the proportion of paths in which one of the countable features needs to be present to be considered part of the core. Essentially using this tool we can estimate the number of 'common' and 'core' bases in the pangenome and look at how the addition of samples affects its growth using growth curves and statistics. The following code should generate a '*.basic_statistics.txt' and 'histgrowth' node tsv and pdf files.
 
 ```
-cd "/mnt/storage13/nbillows/pangenome/genomes/pf_pan_2024_Pf3D7_pan/"
-python ~/pangenomes/pipeline/pangenome_stats.py --prefix pf_pan_2024 --ref_name Pf3D7 --graph_gfa pf_pan_2024.gfa.gz --graph_gbz pf_pan_2024.gbz
+###NOOOO
+"/mnt/storage13/nbillows/pangenome/final_no_mix/PfPan_Pf3D7_pan/"
+python ~/pangenomes/pipeline/pangenome_stats.py --prefix PfPan --ref_name Pf3D7 --graph_gfa PfPan.gfa.gz --graph_gbz PfPan.gbz
 
 ```
 
