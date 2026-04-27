@@ -51,6 +51,70 @@ cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt --outDir ./PfPan_Pf3D7_pan  --
 source deactivate
 ```
 
+# Cactus Pangenome Pipeline Outputs
+
+## Command
+
+```bash
+cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt \
+  --outDir ./PfPan_Pf3D7_pan \
+  --outName PfPan \
+  --reference Pf3D7 \
+  --filter 2 \
+  --haplo \
+  --giraffe clip filter \
+  --viz --odgi \
+  --chrom-vg clip filter \
+  --chrom-og \
+  --gbz clip filter full \
+  --gfa clip full \
+  --vcf --vcfReference Pf3D7 \
+  --logFile ./PfPan_Pf3D7_log.log \
+  --workDir ./ \
+  --consCores 8 \
+  --mgMemory 128Gi \
+  chrom-alignments
+```
+
+---
+
+## Output Files
+
+| File | Format | Description |
+|------|--------|-------------|
+| `PfPan.gbz` | GBZ | Clipped pangenome graph (primary, used for most downstream tools) |
+| `PfPan.full.gbz` | GBZ | Full (unclipped) pangenome graph in GBZ format |
+| `PfPan.d2.gbz` | GBZ | Decorated/distance-indexed graph for Giraffe mapping |
+| `PfPan.gfa.gz` | GFA | Clipped pangenome graph in GFA format |
+| `PfPan.full.gfa.gz` | GFA | Full pangenome graph in GFA format |
+| `PfPan.sv.gfa.gz` | GFA | Structural variant subgraph in GFA format |
+| `PfPan.sv.gfa.fa.gz` | FASTA | Sequences associated with the SV subgraph |
+| `PfPan.full.hal` | HAL | Full whole-genome alignment in HAL format (Cactus native) |
+| `PfPan.full.og` | OG | Full graph in ODGI format |
+| `PfPan.full.snarls` | Snarls | Snarl decomposition of the full graph |
+| `PfPan.snarls` | Snarls | Snarl decomposition of the clipped graph |
+| `PfPan.dist` | Dist | Distance index for the clipped graph |
+| `PfPan.d2.dist` | Dist | Distance index for the Giraffe-ready graph |
+| `PfPan.d2.min` | Min | Minimiser index for Giraffe read mapping |
+| `PfPan.d2.snarls` | Snarls | Snarl index for the Giraffe-ready graph |
+| `PfPan.min` | Min | Minimiser index for the clipped graph |
+| `PfPan.hapl` | Hapl | Haplotype index for `vg haplotypes` / personalised graph construction |
+| `PfPan.gaf.gz` | GAF | Read-to-graph alignments (graph alignment format) |
+| `PfPan.paf` | PAF | Pairwise sequence alignments of input assemblies to the graph |
+| `PfPan.paf.unfiltered.gz` | PAF | Unfiltered version of the pairwise alignments |
+| `PfPan.paf.filter.log` | Log | Log of filtering applied to PAF alignments |
+| `PfPan.vcf.gz` | VCF | Filtered variant calls against `Pf3D7` reference |
+| `PfPan.vcf.gz.tbi` | TBI | Tabix index for `PfPan.vcf.gz` |
+| `PfPan.raw.vcf.gz` | VCF | Raw (unfiltered) variant calls |
+| `PfPan.raw.vcf.gz.tbi` | TBI | Tabix index for `PfPan.raw.vcf.gz` |
+| `PfPan.viz` | Dir/PNG | Visual representation of the pangenome graph (from `--viz`) |
+| `PfPan.stats.tgz` | TGZ | Archive of graph statistics |
+| `PfPan.chroms` | Dir | Per-chromosome graph files |
+| `chrom-alignments/` | Dir | Per-chromosome alignment files |
+| `chrom-subproblems/` | Dir | Intermediate files from per-chromosome cactus alignment |
+| `pf3k_seq_v2.txt` | TXT | Input sequence file listing assemblies |
+
+
 ## Step 3. Get pangenome statistics
 #######EDIT
 We can get pangenome statistics from the use of the cactus-mingraph (e.g. "pf_pan_v1.stats.tgz"), this includes sample, paths and graph statistics. Using the code below we will generate a '...basic_statistics.txt' file which will give us the number of nodes, edges and total sequence length. We will also look at the contig sizes to check the length of each haplotype in the chromosome "./pf_pan_v1_Pf3D7_pan/chrom-subproblems/contig_sizes.tsv". We can see there is a contig size of '0' for sample PfSD01- this sample was actually assembled using a different assembler so we can exclude this from our pangenome and make a new set (v1b and v2b) (Otto et al., 2018). We do this by rerunning the above but change the same of the prefix and we also manually remove PfSD01 from the seq file. Panacus is also a useful package to explore pangenome statistics, including a coverage histogram, pangenome growth statistics and path-/group-resolved coverage table. Panacus relies on 'countable' features including nodes, edges and base pairs. Coverage is defined as the number of distinct paths including the countable. Meanwhile, 'quorum' is the proportion of paths in which one of the countable features needs to be present to be considered part of the core. Essentially using this tool we can estimate the number of 'common' and 'core' bases in the pangenome and look at how the addition of samples affects its growth using growth curves and statistics. The following code should generate a '*.basic_statistics.txt' and 'histgrowth' node tsv and pdf files.
