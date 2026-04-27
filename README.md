@@ -116,17 +116,98 @@ cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt \
 
 
 ## Step 3. Get pangenome statistics
-#######EDIT
-We can get pangenome statistics from the use of the cactus-mingraph (e.g. "pf_pan_v1.stats.tgz"), this includes sample, paths and graph statistics. Using the code below we will generate a '...basic_statistics.txt' file which will give us the number of nodes, edges and total sequence length. We will also look at the contig sizes to check the length of each haplotype in the chromosome "./pf_pan_v1_Pf3D7_pan/chrom-subproblems/contig_sizes.tsv". We can see there is a contig size of '0' for sample PfSD01- this sample was actually assembled using a different assembler so we can exclude this from our pangenome and make a new set (v1b and v2b) (Otto et al., 2018). We do this by rerunning the above but change the same of the prefix and we also manually remove PfSD01 from the seq file. Panacus is also a useful package to explore pangenome statistics, including a coverage histogram, pangenome growth statistics and path-/group-resolved coverage table. Panacus relies on 'countable' features including nodes, edges and base pairs. Coverage is defined as the number of distinct paths including the countable. Meanwhile, 'quorum' is the proportion of paths in which one of the countable features needs to be present to be considered part of the core. Essentially using this tool we can estimate the number of 'common' and 'core' bases in the pangenome and look at how the addition of samples affects its growth using growth curves and statistics. The following code should generate a '*.basic_statistics.txt' and 'histgrowth' node tsv and pdf files.
 
+Two complementary tools are used to characterise the pangenome: **panacus** for growth curve analysis (how much sequence/nodes are core vs accessory) and **vg stats** for basic graph metrics.
+
+---
+
+### 3.1. Panacus — Coverage & Growth Analysis
+
+#### Setup
+
+```bash
+mkdir stats_panacus && cd stats_panacus
+cp ../PfPan.gfa.gz .
+gunzip PfPan.gfa.gz
 ```
-###NOOOO
-"/mnt/storage13/nbillows/pangenome/final_no_mix/PfPan_Pf3D7_pan/"
-python ~/pangenomes/pipeline/pangenome_stats.py --prefix PfPan --ref_name Pf3D7 --graph_gfa PfPan.gfa.gz --graph_gbz PfPan.gbz
 
+> `paths.haplotypes.txt` must be created manually — a plain list of haplotype names present in the graph (one per line), used to stratify growth curves.
+
+---
+
+#### 3.1a. Base Pair Coverage
+
+```bash
+mkdir bp && cd bp
+
+# Histogram of base pair coverage across haplotypes
+panacus hist --count bp ../PfPan.gfa > bp.hist
+
+# Growth curve: how much sequence is core/accessory as haplotypes are added
+panacus histgrowth --count bp ../PfPan.gfa \
+    -l 1,2,1,1,1 \
+    -q 0,0,1,0.5,0.1 \
+    -S -a \
+    -s ../paths.haplotypes.txt > bp.growth
+
+# Plot
+python replot_panacus.py bp.growth > panacus_growth_bp.pdf
 ```
 
+| Output | Description |
+|--------|-------------|
+| `bp.hist` | Histogram of base pair coverage counts across haplotypes |
+| `bp.growth` | Pangenome growth table for base pairs (core/accessory/private breakdown) |
+| `panacus_growth_bp.pdf` | Growth curve plot for base pairs |
 
+---
+
+#### 3.1b. Node Coverage
+
+```bash
+cd ../ && mkdir node && cd node
+
+# Growth curve at node (graph segment) level
+panacus histgrowth --count node \
+    -l 1,2,1,1,1 \
+    -q 0,0,1,0.5,0.1 \
+    -S -a \
+    -s ../paths.haplotypes.txt \
+    ../PfPan.gfa > node.growth
+
+# Plot
+python replot_panacus.py node.growth > panacus_growth_node.pdf
+
+# Pairwise node-level similarity between haplotypes
+panacus similarity --count node
+```
+
+| Output | Description |
+|--------|-------------|
+| `node.growth` | Pangenome growth table at node level |
+| `panacus_growth_node.pdf` | Growth curve plot for nodes |
+
+> **Growth curve parameters:** `-l 1,2,1,1,1 -q 0,0,1,0.5,0.1` defines coverage thresholds for classifying sequence as core (100%), soft-core (≥50%), shell (≥10%), or private (unique to one haplotype). `-S -a` enables stratified and cumulative output.
+
+---
+
+### 3.2 vg Stats — Graph Metrics
+
+```bash
+cd ../ && mkdir vg_stat && cd vg_stat
+
+# Overall graph statistics (nodes, edges, length)
+vg stats -lz ../../PfPan.gbz > stats_full.txt
+
+# Total reference path length for Pf3D7
+vg paths -x ../../PfPan.gbz -S Pf3D7 -E \
+    | awk '{sum += $2} END {print sum}' > additional_full.txt
+```
+
+| Output | Description |
+|--------|-------------|
+| `stats_full.txt` | Node count, edge count, and total graph length |
+| `additional_full.txt` | Summed path length of all `Pf3D7` reference paths through the graph |
 
 
 ## Step 4. Mapping short reads, make gaf and genotype
