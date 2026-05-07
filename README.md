@@ -73,7 +73,6 @@ cactus-pangenome ./PfPan_Pf3D7_js pf3k_seq_v2.txt \
   --workDir ./ \
   --consCores 8 \
   --mgMemory 128Gi \
-  chrom-alignments
 ```
 
 ---
