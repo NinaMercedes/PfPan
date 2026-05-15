@@ -1,0 +1,13 @@
+Pf3D7 /mnt/storage13/nbillows/pangenome/final_no_mix/Pf3D7.fasta.gz
+Pf7G8 /mnt/storage13/nbillows/pangenome/final_no_mix/Pf7G8.April2018.fasta.gz
+PfCD01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfCD01.April2018.fasta.gz
+PfDd2 /mnt/storage13/nbillows/pangenome/final_no_mix/PfDd2.April2018.fasta.gz
+PfGA01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfGA01.April2018.fasta.gz
+PfGB4 /mnt/storage13/nbillows/pangenome/final_no_mix/PfGB4.April2018.fasta.gz
+PfGN01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfGN01.April2018.fasta.gz
+PfHB3 /mnt/storage13/nbillows/pangenome/final_no_mix/PfHB3.April2018.fasta.gz
+PfIT /mnt/storage13/nbillows/pangenome/final_no_mix/PfIT.April2018.fasta.gz
+PfKE01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfKE01.April2018.fasta.gz
+PfKH01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfKH01.April2018.fasta.gz
+PfKH02 /mnt/storage13/nbillows/pangenome/final_no_mix/PfKH02.April2018.fasta.gz
+PfSN01 /mnt/storage13/nbillows/pangenome/final_no_mix/PfSN01.April2018.fasta.gz
