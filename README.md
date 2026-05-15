@@ -63,9 +63,8 @@ Pfpan/
 │   ├── PfPan_extract_sv_sequences.py           ← standalone SV sequence extraction
 │   └── PfPan_annotate_svs.py                   ← standalone SV annotation
 │
-├── PfPan_Pf3D7_pan/                            ← dir contaning PfPan files
-│
-├── reads/                                      ← example reads
+├── PfPan_Pf3D7_pan/                            ← dir contaning PfPan files (can be found here: https://genomics.lshtm.ac.uk/data/)
+
 ```
 
 ---
