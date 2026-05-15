@@ -52,7 +52,7 @@ Multi-sample SNPs and indels were called jointly with GATK across short-read sam
 
 **Quality filters applied:**
 - `QUAL < 20` — low-confidence variant calls removed
-- `MQ < 20` — poor mapping quality sites removed
+- `MQ < 40` — poor mapping quality sites removed
 - `QD < 2` — low quality-by-depth removed
 - `FS > 60` — strand bias filter
 - `BaseQRankSum` and `MQRankSum` outside ±12.5 — rank sum outliers removed
