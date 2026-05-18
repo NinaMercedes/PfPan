@@ -162,7 +162,7 @@ def predict_variant_consequence(variant_row, feature_dfs):
     details['length_change'] = len(alt) - len(ref)
     
     # Check if it's a large structural variant
-    if abs(svlen) >= 50:
+    if abs(svlen) > 50:
         details['is_structural_variant'] = True
         if abs(svlen) >= 1000:
             consequences.append('large_structural_variant')
