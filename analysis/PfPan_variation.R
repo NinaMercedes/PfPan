@@ -90,10 +90,10 @@ process_variants <- function(df,
     mutate(
       TYPE = case_when(
         LEN == 0             ~ "SNP",
-        LEN > 50             ~ "Structural Insertion",
-        LEN > 0 & LEN <= 50  ~ "Small Insertion",
-        LEN < -50            ~ "Structural Deletion",
-        LEN < 0 & LEN >= -50 ~ "Small Deletion",
+        LEN >= 50             ~ "Structural Insertion",
+        LEN > 0 & LEN < 50  ~ "Small Insertion",
+        LEN <= -50            ~ "Structural Deletion",
+        LEN < 0 & LEN > -50 ~ "Small Deletion",
         TRUE ~ NA_character_
       ),
       TYPE = factor(TYPE, levels = c("SNP",
