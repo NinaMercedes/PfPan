@@ -131,7 +131,7 @@ bcftools query -l PfPan.filtered.ann.GOI.vcf.gz > haplos.txt
 
 ### 1.6 Graph region extraction and visualisation
 
-Regions of interest are extracted from the pangenome graph for visualisation in the sequence tube map (https://graph-genome.github.io/) and as ODGI images. The example shown is the *pfcrt* region on chromosome 7.
+Regions of interest are extracted from the pangenome graph for visualisation in the sequence tube map (https://github.com/vgteam/sequenceTubeMap) and as ODGI images. The example shown is the *pfcrt* region on chromosome 7.
 
 ```bash
 # Extract region from full ODGI graph
