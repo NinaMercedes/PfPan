@@ -22,6 +22,63 @@ Four calling strategies are compared per strain:
 | `gatk_surject_loo` (GATK on LOO-graph-surjected mapping) | `delly_loo` (Delly on LOO-graph-surjected mapping) |
 | `vg_hap_loo` (`vg call` on the LOO graph directly) | `vg_hap_sv_loo` (`vg call` on the LOO graph directly) |
 
+A brief example of how samples are mapped and called from a pangenome can be seen below:
+
+```
+############################################################
+# Minimal working example: map + call PfDd2 against the full PfPan graph
+############################################################
+
+conda activate cactus
+
+############################################################
+# 1. map Dd2's reads onto the pangenome graph
+############################################################
+vg giraffe -p -t 16 -Z PfPan.gbz \
+    -f PfDd2_1.trimmed.fastq.gz -f PfDd2_2.trimmed.fastq.gz -o gaf \
+    | bgzip > PfDd2.gaf.gz
+
+############################################################
+# 2. surject the graph alignment onto the Pf3D7 linear reference,
+#    so we also get an ordinary BAM
+############################################################
+vg paths -x PfPan.gbz -L | grep "^Pf3D7" > Pf3D7.paths.txt
+
+vg surject -x PfPan.gbz -G PfDd2.gaf.gz --interleaved \
+    -F Pf3D7.paths.txt -b \
+    -N PfDd2 -R "ID:1 LB:lib1 SM:PfDd2 PL:illumina PU:unit1" \
+    | samtools reheader -c 'sed s/Pf3D7#0#//g' - > PfDd2.bam
+
+samtools sort PfDd2.bam -O BAM -o PfDd2.sort.bam --threads 8
+samtools index PfDd2.sort.bam --threads 8
+
+############################################################
+# 3. call variants directly from the graph alignment
+############################################################
+vg pack -x PfPan.gbz -Q5 -a PfDd2.gaf.gz -o PfDd2.pack
+
+vg call PfPan.gbz -r PfPan.snarls -k PfDd2.pack -t 16 --ploidy 1 \
+    -s PfDd2 -S Pf3D7 -az | bgzip > PfDd2.SV.call_haploid.vcf.gz
+
+############################################################
+# 4. (optional) strip the "Pf3D7#0#" path prefix from contig names
+#    in the VCF, same as done for the BAM above
+############################################################
+bcftools index -f -t PfDd2.SV.call_haploid.vcf.gz
+bcftools view -h PfDd2.SV.call_haploid.vcf.gz | grep "^##contig" | \
+    sed -E 's/##contig=<ID=([^,]+),.*/\1/' | \
+    awk '{new=$0; gsub("Pf3D7#0#","",new); print $0"\t"new}' > rename_map.txt
+bcftools annotate --rename-chrs rename_map.txt PfDd2.SV.call_haploid.vcf.gz \
+    -Oz -o body_renamed.vcf.gz
+bcftools view -h body_renamed.vcf.gz | sed 's/Pf3D7#0#//g' > header_fixed.txt
+bcftools reheader -h header_fixed.txt body_renamed.vcf.gz \
+    -o PfDd2.SV.call_haploid.renamed.vcf.gz
+
+# -> PfDd2.SV.call_haploid.renamed.vcf.gz is Dd2's variant calls,
+#    genotyped directly against the pangenome graph.
+
+```
+
 ---
 
 ## Requirements
