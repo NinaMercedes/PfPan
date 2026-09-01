@@ -12,7 +12,8 @@ This pipeline automates the construction of a *Plasmodium falciparum* pangenome 
 - **Pipeline scripts** (all located in the same directory as `construct_PfPan.py`):
   - `wget_pf3k_fasta.py` — downloads assemblies from Sanger FTP
   - `make_seqtxt.py` — generates the seq file for cactus
-  - `replot_panacus.py` — plots panacus growth curves
+  - `plot_figure1_node.py` — plots panacus growth curves
+  - `plot_figure1_bp.py` — plots panacus growth curves
 
 ---
 
@@ -26,7 +27,8 @@ custom_scripts/
 │   ├── construct_PfPan.py       ← main pipeline script
 │   ├── wget_pf3k_fasta.py
 │   ├── make_seqtxt.py
-│   └── replot_panacus.py
+│   ├── mplot_figure1_bp.py
+│   └── plot_figure1_node.py
 ├── genomes/                     ← assembly FASTA files and seq file (auto-created)
 ├── PfPan_Pf3D7_pan/             ← pangenome graph outputs (auto-created)
 ├── PfPan_Pf3D7_js/              ← Cactus job store, can be deleted after run (auto-created)
