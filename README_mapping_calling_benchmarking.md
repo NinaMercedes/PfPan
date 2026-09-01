@@ -6,6 +6,13 @@ back to it, calls short variants and structural variants (SVs) via several
 methods, and benchmarks each caller against assembly-derived truth sets,
 stratified by genome region.
 
+Ran using:
+
+```
+bash full_pipeline.sh 
+```
+This is currently hardcoded. Will make more flexible in the future.
+
 Four calling strategies are compared per strain:
 
 | Short variants        | Structural variants |
