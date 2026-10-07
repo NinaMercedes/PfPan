@@ -10,113 +10,9 @@ This pipeline automates the construction of a *Plasmodium falciparum* pangenome 
 - **Cactus virtualenv:** sourced automatically at runtime for `cactus-pangenome`
 - **Tools on PATH:** `panacus`, `vg`, `wget`
 - **Pipeline scripts** (all located in the same directory as `construct_PfPan.py`):
-  - `wget_pf3k_fasta.py` — downloads assemblies from Sanger FTP
-  - `make_seqtxt.py` — generates the seq file for cactus
-  - `plot_figure1_node.py` — plots panacus growth curves
-  - `plot_figure1_bp.py` — plots panacus growth curves
-
----
-
-## Directory Structure
-
-All paths are resolved relative to the location of `construct_PfPan.py` using `Path(__file__).resolve()`, ensuring the pipeline works correctly regardless of which directory it is invoked from.
-
-```
-custom_scripts/
-├── pipeline/
-│   ├── construct_PfPan.py       ← main pipeline script
-│   ├── wget_pf3k_fasta.py
-│   ├── make_seqtxt.py
-│   ├── mplot_figure1_bp.py
-│   └── plot_figure1_node.py
-├── genomes/                     ← assembly FASTA files and seq file (auto-created)
-├── PfPan_Pf3D7_pan/             ← pangenome graph outputs (auto-created)
-├── PfPan_Pf3D7_js/              ← Cactus job store, can be deleted after run (auto-created)
-├── stats_panacus/               ← pangenome statistics outputs (auto-created)
-└── pipeline.log                 ← timestamped run log
-```
-
----
-
-## Usage
-
-```bash
-conda activate cactus
-
-# Full run including assembly download
-python ./pipeline/construct_PfPan.py --download
-
-# Note post-download replaced the 3D7 sequence with the standard Plasmodium falciparum 3D7 reference version 3
-
-# Full run, assemblies already present in genomes/
-python ./pipeline/construct_PfPan.py
-
-# Run individual steps selectively
-python ./pipeline/construct_PfPan.py --skip-seq            # skip seq file generation
-python ./pipeline/construct_PfPan.py --skip-graph          # skip graph construction
-python ./pipeline/construct_PfPan.py --skip-stats          # skip statistics
-python ./pipeline/construct_PfPan.py --skip-seq --skip-graph   # statistics only
-```
-
----
-
-## Pipeline Steps
-
-### Optional: Download Assemblies (`--download`)
-
-**Script:** `wget_pf3k_fasta.py`
-
-Fetches *P. falciparum* PacBio long-read assemblies from the Pf3k Sanger FTP server. Rather than using recursive wget (which only retrieves the index page), the script explicitly parses the FTP directory listing for `.fasta.gz` hrefs and downloads each file individually, skipping `.fai` index files. Files are downloaded directly into `genomes/` by running wget with `cwd=GENOME_DIR`.
-
-**Source:** `https://ftp.sanger.ac.uk/pub/project/pathogens/Plasmodium/falciparum/PF3K/ReferenceGenomes_Version1/GENOMES/`
-
-**Output — `genomes/`:**
-
-| File | Size | Description |
-|------|------|-------------|
-| `Pfalciparum.genome.fasta.gz` | 6.1M | 3D7 Reference strain version 3 — West African origin |
-| `Pf7G8.April2018.fasta.gz` | 5.9M | Lab strain |
-| `PfCD01.April2018.fasta.gz` | 6.1M | Clinical isolate — Cambodia |
-| `PfDd2.April2018.fasta.gz` | 5.9M | Lab strain — Indochina origin |
-| `PfGA01.April2018.fasta.gz` | 6.0M | Clinical isolate — Gabon |
-| `PfGB4.April2018.fasta.gz` | 6.1M | Lab strain |
-| `PfGN01.April2018.fasta.gz` | 6.2M | Clinical isolate — Guinea |
-| `PfHB3.April2018.fasta.gz` | 5.9M | Lab strain |
-| `PfIT.April2018.fasta.gz` | 6.0M | Lab strain — Italian origin |
-| `PfKE01.April2018.fasta.gz` | 5.9M | Clinical isolate — Kenya |
-| `PfKH01.April2018.fasta.gz` | 6.1M | Clinical isolate — Cambodia |
-| `PfKH02.April2018.fasta.gz` | 6.0M | Clinical isolate — Cambodia |
-| `PfML01.April2018.fasta.gz` | 6.7M | Clinical isolate (not included) — Mali |
-| `PfSD01.April2018.fasta.gz` | 5.9M | Clinical isolate (not included) — Sudan |
-| `PfSN01.April2018.fasta.gz` | 6.1M | Clinical isolate — Senegal |
-| `PfTG01.April2018.fasta.gz` | 6.7M | Clinical isolate (not included) — Togo |
 
 
----
-
-### Step 1: Generate Seq File
-
-**Script:** `make_seqtxt.py`
-
-Generates the two-column sequence file required by `cactus-pangenome`. The script lists all `.fasta.gz` files in `genomes/`, extracts the sample name from the filename (everything before the first `.`), and writes the sample name and its absolute path as space-separated columns. The script runs with `cwd=GENOME_DIR` to ensure it finds the assemblies and writes the seq file to the correct location.
-
-**Output — `genomes/`:**
-
-| File | Description |
-|------|-------------|
-| `pf3k_seq_v2.txt` | Two-column seq file mapping sample names to absolute FASTA paths |
-| `fasta_list.txt` | Intermediate file listing all `.fasta.gz` filenames — can be ignored |
-
-Example `pf3k_seq_v2.txt` content:
-```
-Pf3D7 /mnt/storage13/nbillows/custom_scripts/genomes/Pf3D7.April2018.fasta.gz
-PfDd2 /mnt/storage13/nbillows/custom_scripts/genomes/PfDd2.April2018.fasta.gz
-...
-```
-
----
-
-### Step 2: Build Pangenome Graph
+### Step 1: Build Pangenome Graph
 
 **Tool:** `cactus-pangenome` (run inside Cactus virtualenv, sourced automatically)
 
@@ -176,9 +72,11 @@ Constructs the pangenome graph using Minigraph-Cactus. Pf3D7 (West African origi
 | `chrom-subproblems/` | — | Dir | Intermediate files from per-chromosome Cactus alignment — can be deleted after a successful run |
 | `pf3k_seq_v2.txt` | 1.5K | TXT | Copy of the input seq file |
 
+Note here the 3D7 reference here in `pf3k_seq_v2.txt` was renamed, the file used is https://zenodo.org/records/18711720/files/Pfalciparum.genome.fasta?download=1, the other assemblies were downloaded using wget_pf3k_fasta.py in the scripts directory. TG01, ML01 and SD01 were not included.
+
 ---
 
-### Step 3: Pangenome Statistics
+### Step 2: Pangenome Statistics
 
 Two complementary tools are used to characterise the pangenome: **panacus** for growth curve analysis and **vg stats** for basic graph metrics. The GFA graph is copied and decompressed into `stats_panacus/` for use by panacus. If the haplotypes file (`paths.haplotypes.txt`) does not already exist, it is generated automatically from the first column of the seq file.
 
