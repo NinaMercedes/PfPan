@@ -11,16 +11,10 @@ For each sample:
   4. Calls short variants (SNPs/indels) via GATK HaplotypeCaller in GVCF mode
   5. Calls SVs with DELLY from the sorted BAM
   6. Builds a pack coverage index from graph alignments (vg pack)
-  7. Calls variants from the graph (vg call) — diploid
-  8. Calls variants from the graph (vg call) — haploid (--ploidy 1)
+  7. Calls variants from the graph (vg call) — haploid (--ploidy 1)
 
 Usage:
     python PfPan_PfPan_map_and_call.py --sample <sample_name>
-
-    # Skip individual steps
-    python PfPan_PfPan_map_and_call.py --sample <sample_name> --skip-delly
-    python PfPan_PfPan_map_and_call.py --sample <sample_name> --skip-haploid
-    python PfPan_PfPan_map_and_call.py --sample <sample_name> --skip-delly --skip-haploid
 
 Expected inputs (in current directory):
     <sample>_1.trimmed.fastq.gz
@@ -225,7 +219,7 @@ def run_pipeline(sample: str, skip_delly: bool, skip_haploid: bool) -> None:
         log.info("Skipping Step 5 (DELLY SV calling)")
 
     vg_pack(sample)
-    vg_call_diploid(sample)
+    # vg_call_diploid(sample)
 
     if not skip_haploid:
         vg_call_haploid(sample)
@@ -242,7 +236,7 @@ def main():
     )
     parser.add_argument("--sample",       required=True,      help="Sample name")
     parser.add_argument("--skip-delly",   action="store_true", help="Skip DELLY SV calling (Step 5)")
-    parser.add_argument("--skip-haploid", action="store_true", help="Skip haploid vg call (Step 8)")
+    parser.add_argument("--skip-haploid", action="store_true", help="Skip haploid vg call, not suggested")
     args = parser.parse_args()
     run_pipeline(args.sample, args.skip_delly, args.skip_haploid)
 
