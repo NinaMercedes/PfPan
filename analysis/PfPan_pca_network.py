@@ -1,291 +1,337 @@
-import pandas as pd
+#!/usr/bin/env python3
+"""
+Figure 2: P. falciparum variant summary and haplotype relationships.
+
+  A  Variant type counts
+  B  Allele frequency distribution (stacked by type)
+  C  Structural variant length (DEL / INS), coloured to match A and B
+  D  PCA of SV genotypes. Colour = geographic region, shape = continent
+  E  Jaccard similarity network, same colour/shape encoding as D
+
+Filtering reproduces the R process_variants() step exactly:
+  missing_frac <= 0.9, AF != 0, |LEN| < 10,000, then classify by LEN.
+
+Usage:
+    python fig2_sv_summary.py PfPan_all_variants_info_GT.tsv  [out_prefix]
+"""
+
+import sys
 import numpy as np
+import pandas as pd
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
 from matplotlib.colors import Normalize
-from matplotlib.patches import Ellipse
+from matplotlib.ticker import FuncFormatter
 from sklearn.decomposition import PCA
 import networkx as nx
-from adjustText import adjust_text
-import warnings
-warnings.filterwarnings('ignore')
 
-# ── Palettes ──────────────────────────────────────────────────────────────────
-pals12 = ["#2BAE84","#3366CC","#8153A6","#E87DBF","#FF7033",
-          "#F4A736","#D6A419","#3FB1C2","#7B5EA7","#A5426D","#6EC4E8","#8B5E3C"]
+TSV = sys.argv[1] if len(sys.argv) > 1 else 'PfPan_all_variants_info_GT.tsv'
+OUT = sys.argv[2] if len(sys.argv) > 2 else 'fig2_sv_summary'
 
-pals5 = ["#2BAE84","#3366CC","#8153A6","#E87DBF","#FF7033"]
+# ── Typography ────────────────────────────────────────────────────────────────
+plt.rcParams.update({
+    'font.family':      'DejaVu Sans',
+    'font.size':        18,
+    'axes.labelsize':   20,
+    'axes.labelweight': 'bold',
+    'xtick.labelsize':  17,
+    'ytick.labelsize':  17,
+    'legend.fontsize':  17,
+    'legend.title_fontsize': 18,
+    'axes.linewidth':   1.4,
+    'xtick.major.width': 1.2,
+    'ytick.major.width': 1.2,
+    'xtick.major.size': 5,
+    'ytick.major.size': 5,
+})
+PANEL_FS = 30
+POINT_FS = 17
 
-type_order  = ['SNP','Small Insertion','Small Deletion',
-               'Structural Insertion','Structural Deletion']
-type_colors = {
-    'SNP':                  pals5[0],
-    'Small Insertion':      pals5[1],
-    'Small Deletion':       pals5[2],
-    'Structural Insertion': pals5[3],
-    'Structural Deletion':  pals5[4],
+# ── Variant-type colours (unchanged from the original R figure) ───────────────
+TYPE_ORDER  = ['SNP', 'Small Insertion', 'Small Deletion',
+               'Structural Insertion', 'Structural Deletion']
+TYPE_COLORS = {
+    'SNP':                  '#2BAE84',
+    'Small Insertion':      '#3366CC',
+    'Small Deletion':       '#8153A6',
+    'Structural Insertion': '#FF7033',
+    'Structural Deletion':  '#E87DBF',
 }
-sv_colors = {'Insertion': pals5[0], 'Deletion': pals5[4]}
 
-sample_cols = ['Pf7G8','PfCD01','PfDd2','PfGA01','PfGB4','PfGN01','PfHB3',
-               'PfIT','PfKE01','PfKH01','PfKH02','PfSN01']
+# ── Region colours: sampled from the population PCA figure ───────────────────
+REGION_COLORS = {
+    'West Africa':     '#E63946',
+    'Central Africa':  '#2BAE84',
+    'East Africa':     '#3366CC',
+    'Southeast Asia':  '#F4A736',
+    'South America':   '#E87DBF',
+    'Central America': '#3FB1C2',   # HB3 only; not in the population panel
+}
+REGION_ORDER = list(REGION_COLORS)
 
-# ── Load data ─────────────────────────────────────────────────────────────────
-# variants = your dataframe
-df = variants.copy()
+# Shape encodes continent, so region is readable without colour
+CONTINENT = {
+    'West Africa': 'Africa', 'Central Africa': 'Africa', 'East Africa': 'Africa',
+    'Southeast Asia': 'Asia',
+    'South America': 'Americas', 'Central America': 'Americas',
+}
+CONT_MARKER = {'Africa': 'o', 'Asia': '^', 'Americas': 's'}
 
-# ── Top panels: variant summary data ─────────────────────────────────────────
-vc      = df.copy()
-sv_data = vc[vc['ABSLEN'] > 50].copy()
-sv_data['SVTYPE2'] = np.where(sv_data['LEN'] > 0, 'Insertion', 'Deletion')
+SAMPLE_REGION = {
+    'Pf7G8':  'South America',    # Brazil
+    'PfCD01': 'Central Africa',   # DRC
+    'PfDd2':  'Southeast Asia',   # Indochina
+    'PfGA01': 'West Africa',      # Gabon
+    'PfGB4':  'West Africa',      # Ghana
+    'PfGN01': 'West Africa',      # Guinea
+    'PfHB3':  'Central America',  # Honduras
+    'PfIT':   'South America',    # Brazil (Itajuba)
+    'PfKE01': 'East Africa',      # Kenya
+    'PfKH01': 'Southeast Asia',   # Cambodia
+    'PfKH02': 'Southeast Asia',   # Cambodia
+    'PfSN01': 'West Africa',      # Senegal
+}
+SAMPLES = list(SAMPLE_REGION)
+REF_COLOR = '#8C8C8C'
 
-# ── SV matrix for PCA / network ───────────────────────────────────────────────
+def scol(s):
+    return REF_COLOR if s == 'Pf3D7' else REGION_COLORS[SAMPLE_REGION[s]]
+
+def smark(s):
+    return 'D' if s == 'Pf3D7' else CONT_MARKER[CONTINENT[SAMPLE_REGION[s]]]
+
+def short(s):
+    return s if s == 'Pf3D7' else s[2:]   # drop the "Pf" prefix for labels
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Data: replicate R process_variants()
+# ══════════════════════════════════════════════════════════════════════════════
+cols = ['CHR', 'POS', 'REF', 'ALT', 'QUAL', 'AC', 'AN', 'AF', 'NS',
+        'SVTYPE', 'SVLEN'] + SAMPLES
+df = pd.read_csv(TSV, sep='\t', header=None, names=cols, low_memory=False)
+df['AF']     = pd.to_numeric(df['AF'], errors='coerce')
+df['LEN']    = df['ALT'].str.len() - df['REF'].str.len()
+df['ABSLEN'] = df['LEN'].abs()
+miss = (df[SAMPLES].isin(['.']) | df[SAMPLES].isna()).sum(axis=1) / len(SAMPLES)
+df = df[(miss <= 0.9) & (df['AF'] != 0) & (df['ABSLEN'] < 10000)].copy()
+
+df['TYPE'] = np.select(
+    [df['LEN'] == 0, df['LEN'] >= 50, df['LEN'] > 0, df['LEN'] <= -50],
+    ['SNP', 'Structural Insertion', 'Small Insertion', 'Structural Deletion'],
+    default='Small Deletion')
+
+# SV genotype matrix for PCA / network (as in the original Python code)
 filt = df[(df['ABSLEN'] > 50) & (df['TYPE'] != 'SNP')].copy()
-geno = filt[sample_cols].replace('.', np.nan).astype(float)
-filt['n_alt'] = (geno == 1).sum(axis=1)
-filt = filt[filt['n_alt'] >= 2].reset_index(drop=True)
-geno = filt[sample_cols].replace('.', np.nan).astype(float)
+geno = filt[SAMPLES].replace('.', np.nan).astype(float)
+filt = filt[(geno == 1).sum(axis=1) >= 2]
+geno = filt[SAMPLES].replace('.', np.nan).astype(float)
 geno['Pf3D7'] = 0.0
-all_samples = sample_cols + ['Pf3D7']
-n_all = len(all_samples)
+ALL = SAMPLES + ['Pf3D7']
 
-mat_imp  = np.where(np.isnan(geno[all_samples].values), 0.5, geno[all_samples].values)
-alt_bin  = (mat_imp >= 0.75).astype(float)
-shared_b = alt_bin.T @ alt_bin
-totals_b = alt_bin.sum(axis=0)
-
-jaccard = np.zeros((n_all, n_all))
-for i in range(n_all):
-    for j in range(n_all):
-        d = totals_b[i] + totals_b[j] - shared_b[i,j]
-        jaccard[i,j] = shared_b[i,j] / d if d > 0 else 0
+mat = np.where(np.isnan(geno[ALL].values), 0.5, geno[ALL].values)
+alt = (mat >= 0.75).astype(float)
+shared = alt.T @ alt
+tot    = alt.sum(axis=0)
+jac = np.divide(shared, tot[:, None] + tot[None, :] - shared,
+                out=np.zeros_like(shared), where=(tot[:, None] + tot[None, :] - shared) > 0)
 
 pca     = PCA(n_components=5)
-X_pca   = pca.fit_transform(mat_imp.T)
+X       = pca.fit_transform(mat.T)
 var_exp = pca.explained_variance_ratio_ * 100
 
-net_idx    = [all_samples.index(s) for s in sample_cols]
-jac_net    = jaccard[np.ix_(net_idx, net_idx)]
-totals_net = {s: int(totals_b[all_samples.index(s)]) for s in sample_cols}
-
-sample_colors = {s: pals12[i] for i, s in enumerate(sample_cols)}
-sample_colors['Pf3D7'] = '#999999'
-sea_cluster = ['PfDd2','PfIT','PfKH01','PfKH02']
+print(f'Variants after filtering: {len(df):,}')
+print(f'SVs in PCA matrix:        {len(filt):,}')
+print('Variance explained:', ', '.join(f'PC{i+1} {v:.1f}%' for i, v in enumerate(var_exp)))
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Figure: 2 rows — top = A B C, bottom = D E
+# Layout
 # ══════════════════════════════════════════════════════════════════════════════
-fig = plt.figure(figsize=(22, 16), facecolor='white')
-gs_outer = gridspec.GridSpec(
-    2, 1, figure=fig,
-    height_ratios=[1, 1.15],
-    hspace=0.42,
-    left=0.06, right=0.97, top=0.94, bottom=0.07
-)
-gs_top = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs_outer[0], wspace=0.38)
-gs_bot = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs_outer[1], wspace=0.30)
+fig = plt.figure(figsize=(21, 19), facecolor='white')
+outer = gridspec.GridSpec(2, 1, figure=fig, height_ratios=[1, 1.3],
+                          hspace=0.30, left=0.07, right=0.98, top=0.955, bottom=0.115)
+top = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[0],
+                                       width_ratios=[1, 1.15, 1.15], wspace=0.34)
+bot = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[1],
+                                       width_ratios=[1.1, 1], wspace=0.12)
+gs_c = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=top[2], hspace=0.12)
 
-ax_a = fig.add_subplot(gs_top[0])
-ax_b = fig.add_subplot(gs_top[1])
-ax_c = fig.add_subplot(gs_top[2])
-ax_d = fig.add_subplot(gs_bot[0])
-ax_e = fig.add_subplot(gs_bot[1])
+ax_a = fig.add_subplot(top[0])
+ax_b = fig.add_subplot(top[1])
+ax_cd = fig.add_subplot(gs_c[0])
+ax_ci = fig.add_subplot(gs_c[1], sharex=ax_cd)
+ax_d = fig.add_subplot(bot[0])
+ax_e = fig.add_subplot(bot[1])
 
-TITLE_FS = 13
-LABEL_FS = 11
-TICK_FS  = 10
-BAR_FS   = 11
+def clean(ax):
+    for sp in ('top', 'right'):
+        ax.spines[sp].set_visible(False)
 
-# ════════ Panel A — Variant types bar ════════════════════════════════════════
-type_counts    = vc['TYPE'].value_counts()
-present_types  = [t for t in type_order if t in type_counts.index]
-counts         = [type_counts[t] for t in present_types]
-cols_a         = [type_colors[t] for t in present_types]
+def letter(ax, l, x=-0.16, y=1.04):
+    ax.text(x, y, l, transform=ax.transAxes, fontsize=PANEL_FS,
+            fontweight='bold', va='bottom', ha='left')
 
-bars = ax_a.bar(present_types, counts, color=cols_a,
-                edgecolor='white', linewidth=0.5, width=0.6)
-for bar, cnt in zip(bars, counts):
-    ax_a.text(bar.get_x() + bar.get_width()/2,
-              bar.get_height() + 30,
-              f'{cnt:,}', ha='center', va='bottom',
-              fontsize=BAR_FS, color='#333333')
+thousands = FuncFormatter(lambda v, _: f'{int(v):,}')
 
-ax_a.set_xlabel('Variant type', fontsize=LABEL_FS)
-ax_a.set_ylabel('Count', fontsize=LABEL_FS)
-ax_a.set_xticklabels(present_types, rotation=35, ha='right', fontsize=TICK_FS)
-ax_a.tick_params(axis='y', labelsize=TICK_FS)
-ax_a.set_ylim(0, max(counts) * 1.15)
-for sp in ['top','right']:   ax_a.spines[sp].set_visible(False)
-for sp in ['left','bottom']: ax_a.spines[sp].set_color('#CCCCCC')
-ax_a.set_title('A   Variant types', fontsize=TITLE_FS,
-               fontweight='normal', loc='left', pad=6)
+# ── A: variant type counts ────────────────────────────────────────────────────
+counts = df['TYPE'].value_counts().reindex(TYPE_ORDER)
+bars = ax_a.bar(range(5), counts.values, color=[TYPE_COLORS[t] for t in TYPE_ORDER],
+                width=0.7, edgecolor='none')
+for b, n in zip(bars, counts.values):
+    ax_a.text(b.get_x() + b.get_width() / 2, n + counts.max() * 0.015, f'{n:,}',
+              ha='center', va='bottom', fontsize=14, rotation=0)
+ax_a.set_xticks(range(5))
+ax_a.set_xticklabels(['SNP', 'Small\ninsertion', 'Small\ndeletion',
+                      'Structural\ninsertion', 'Structural\ndeletion'],
+                     rotation=45, ha='right', rotation_mode='anchor', fontsize=16)
+ax_a.set_ylabel('Count')
+ax_a.set_ylim(0, counts.max() * 1.12)
+ax_a.yaxis.set_major_formatter(thousands)
+clean(ax_a)
+letter(ax_a, 'A', x=-0.30)
 
-# ════════ Panel B — SV length histogram ══════════════════════════════════════
-bins     = np.linspace(50, sv_data['ABSLEN'].max(), 41)
-ins_data = sv_data[sv_data['SVTYPE2'] == 'Insertion']['ABSLEN']
-del_data = sv_data[sv_data['SVTYPE2'] == 'Deletion']['ABSLEN']
+# ── B: AF distribution, stacked as in ggplot ──────────────────────────────────
+bins_af = np.arange(0, 1.0 + 0.05, 0.05)
+ax_b.hist([df.loc[df['TYPE'] == t, 'AF'] for t in TYPE_ORDER], bins=bins_af,
+          stacked=True, color=[TYPE_COLORS[t] for t in TYPE_ORDER],
+          edgecolor='white', linewidth=0.6, label=TYPE_ORDER)
+ax_b.set_xlabel('Allele frequency')
+ax_b.set_ylabel('Count')
+ax_b.set_xlim(0, 1)
+ax_b.yaxis.set_major_formatter(thousands)
+ax_b.legend(frameon=False, loc='upper right', fontsize=16, handlelength=1.2,
+            handleheight=1.0, title='Variant type', title_fontsize=17)
+clean(ax_b)
+letter(ax_b, 'B', x=-0.26)
 
-ax_b.hist(ins_data, bins=bins, color=sv_colors['Insertion'],
-          edgecolor='white', linewidth=0.2, label='Insertion', alpha=0.9)
-ax_b.hist(del_data, bins=bins, color=sv_colors['Deletion'],
-          edgecolor='white', linewidth=0.2, label='Deletion',  alpha=0.9)
+# ── C: SV length, colours tied to panel A ─────────────────────────────────────
+sv = df[df['TYPE'].isin(['Structural Insertion', 'Structural Deletion'])]  # >=50 bp, matches panel A
+bins_log = np.logspace(np.log10(50), np.log10(10000), 41)
+for ax, t, lab in [(ax_cd, 'Structural Deletion', 'Deletions'),
+                   (ax_ci, 'Structural Insertion', 'Insertions')]:
+    vals = sv.loc[sv['TYPE'] == t, 'ABSLEN']
+    ax.hist(vals, bins=bins_log, color=TYPE_COLORS[t], edgecolor='white', linewidth=0.5)
+    ax.set_xscale('log')
+    ax.set_ylabel('Count')
+    ax.text(0.97, 0.90, f'{lab} (n = {len(vals):,})', transform=ax.transAxes,
+            ha='right', va='top', fontsize=17, fontweight='bold', color=TYPE_COLORS[t])
+    clean(ax)
+ax_ci.set_xlabel('SV length (bp)')
+ax_ci.set_xticks([50, 100, 200, 500, 1000, 2000, 5000, 10000])
+ax_ci.set_xticklabels(['50', '100', '200', '500', '1k', '2k', '5k', '10k'])
+plt.setp(ax_cd.get_xticklabels(), visible=False)
+letter(ax_cd, 'C', x=-0.26, y=1.08)
 
-ax_b.set_xlabel('SV length (bp)', fontsize=LABEL_FS)
-ax_b.set_ylabel('Count',          fontsize=LABEL_FS)
-ax_b.tick_params(labelsize=TICK_FS)
-ax_b.legend(fontsize=TICK_FS, frameon=False, loc='upper right')
-for sp in ['top','right']:   ax_b.spines[sp].set_visible(False)
-for sp in ['left','bottom']: ax_b.spines[sp].set_color('#CCCCCC')
-ax_b.set_title('B   SV length distribution  (ABSLEN > 50 bp)',
-               fontsize=TITLE_FS, fontweight='normal', loc='left', pad=6)
-
-# ════════ Panel C — AF distribution ══════════════════════════════════════════
-bins_af = np.arange(0, 1.05, 0.05)
-for t in present_types:
-    sub = vc[vc['TYPE'] == t]['AF']
-    ax_c.hist(sub, bins=bins_af, color=type_colors[t],
-              edgecolor='white', linewidth=0.2,
-              label=t, alpha=0.88)
-
-ax_c.set_xlabel('Allele frequency', fontsize=LABEL_FS)
-ax_c.set_ylabel('Count',            fontsize=LABEL_FS)
-ax_c.tick_params(labelsize=TICK_FS)
-ax_c.legend(fontsize=8.5, frameon=False, loc='upper right',
-            title='Type', title_fontsize=9)
-for sp in ['top','right']:   ax_c.spines[sp].set_visible(False)
-for sp in ['left','bottom']: ax_c.spines[sp].set_color('#CCCCCC')
-ax_c.set_title('C   Allele frequency distribution',
-               fontsize=TITLE_FS, fontweight='normal', loc='left', pad=6)
-
-# ════════ Panel D — PCA ═══════════════════════════════════════════════════════
-xs = X_pca[:, 0]
-ys = X_pca[:, 1]
-
-sea_idx_pca = [all_samples.index(s) for s in sea_cluster]
-sea_pc = X_pca[sea_idx_pca, :2]
-cx, cy = sea_pc[:,0].mean(), sea_pc[:,1].mean()
-w = (sea_pc[:,0].max() - sea_pc[:,0].min()) * 2.0
-h = (sea_pc[:,1].max() - sea_pc[:,1].min()) * 3.5
-ax_d.add_patch(Ellipse((cx, cy), w, h, angle=10,
-                        facecolor=pals12[4]+'22', edgecolor=pals12[4],
-                        linewidth=1.8, linestyle='--', zorder=1))
-ax_d.text(cx, cy - h/2 - 0.55, 'SE Asian cluster',
-          ha='center', fontsize=10.5, color=pals12[4], fontstyle='italic')
-
-for i, s in enumerate(all_samples):
-    ax_d.scatter(xs[i], ys[i],
-                 s=300 if s != 'Pf3D7' else 200,
-                 color=sample_colors[s],
-                 marker='D' if s == 'Pf3D7' else 'o',
-                 edgecolors='#555555' if s == 'Pf3D7' else 'white',
-                 linewidths=1.5, zorder=4)
-
-texts = []
-for i, s in enumerate(all_samples):
-    t = ax_d.text(xs[i], ys[i], s,
-                  fontsize=10.5,
-                  color='#555555' if s == 'Pf3D7' else '#111111',
-                  fontweight='bold' if s in sea_cluster else 'normal',
+# ── D: PCA ────────────────────────────────────────────────────────────────────
+# Label offsets in points (dx, dy); hand-set so the tight African cluster stays readable
+LABEL_OFF = {
+    'Pf7G8':  (14, 0),   'PfHB3':  (14, 0),
+    'PfCD01': (14, 0),   'PfGB4':  (14, 0),
+    'Pf3D7':  (-14, 4),  'PfGA01': (-14, -2),
+    'PfKE01': (14, 4),   'PfGN01': (-14, -2),
+    'PfSN01': (14, -4),
+    'PfIT':   (-14, 8),  'PfKH02': (4, -20),
+    'PfDd2':  (0, 16),   'PfKH01': (14, 0),
+}
+ax_d.axhline(0, color='#E3E3E3', lw=1, zorder=0)
+ax_d.axvline(0, color='#E3E3E3', lw=1, zorder=0)
+for i, s in enumerate(ALL):
+    ax_d.scatter(X[i, 0], X[i, 1], s=380, marker=smark(s), color=scol(s),
+                 edgecolors='white' if s != 'Pf3D7' else '#4D4D4D',
+                 linewidths=1.6, zorder=4)
+    dx, dy = LABEL_OFF[s]
+    ax_d.annotate(short(s), (X[i, 0], X[i, 1]), xytext=(dx, dy),
+                  textcoords='offset points', fontsize=POINT_FS, fontweight='bold',
+                  color='#555555' if s == 'Pf3D7' else '#222222',
                   fontstyle='italic' if s == 'Pf3D7' else 'normal',
+                  ha='left' if dx > 0 else ('right' if dx < 0 else 'center'),
+                  va='center' if dy == 0 or abs(dx) > 0 else ('bottom' if dy > 0 else 'top'),
                   zorder=5)
-    texts.append(t)
+ax_d.set_xlabel(f'PC1 ({var_exp[0]:.1f}%)')
+ax_d.set_ylabel(f'PC2 ({var_exp[1]:.1f}%)')
+pad_x = (X[:, 0].max() - X[:, 0].min()) * 0.14
+pad_y = (X[:, 1].max() - X[:, 1].min()) * 0.10
+ax_d.set_xlim(X[:, 0].min() - pad_x * 1.4, X[:, 0].max() + pad_x)
+ax_d.set_ylim(X[:, 1].min() - pad_y * 1.3, X[:, 1].max() + pad_y)
+clean(ax_d)
+letter(ax_d, 'D', x=-0.12, y=1.02)
 
-adjust_text(texts, x=xs, y=ys, ax=ax_d,
-            expand_points=(2.5, 2.5), expand_text=(1.6, 1.6),
-            arrowprops=dict(arrowstyle='-', color='#BBBBBB', lw=0.9),
-            force_points=0.8, force_text=0.6, lim=500)
+# scree inset in the empty upper-right area
+ins = ax_d.inset_axes([0.60, 0.66, 0.36, 0.28])
+ins.bar(range(1, 6), var_exp[:5], color='#9A9A9A', width=0.65)
+ins.set_xticks(range(1, 6))
+ins.set_xticklabels([f'PC{i}' for i in range(1, 6)], fontsize=14)
+ins.tick_params(axis='y', labelsize=14)
+ins.set_ylabel('Variance (%)', fontsize=15, fontweight='normal')
+for sp in ('top', 'right'):
+    ins.spines[sp].set_visible(False)
 
-ax_d.axhline(0, color='#EBEBEB', lw=0.8, zorder=0)
-ax_d.axvline(0, color='#EBEBEB', lw=0.8, zorder=0)
-ax_d.set_xlabel(f'PC1  ({var_exp[0]:.1f}% variance explained)', fontsize=LABEL_FS)
-ax_d.set_ylabel(f'PC2  ({var_exp[1]:.1f}% variance explained)', fontsize=LABEL_FS)
-ax_d.tick_params(labelsize=TICK_FS)
-for sp in ['top','right']:   ax_d.spines[sp].set_visible(False)
-for sp in ['left','bottom']: ax_d.spines[sp].set_color('#CCCCCC')
-
-ax_sc = ax_d.inset_axes([0.73, 0.73, 0.25, 0.24])
-ax_sc.bar(range(1,6), var_exp[:5], color=pals12[2], alpha=0.85, width=0.6)
-ax_sc.set_xticks(range(1,6))
-ax_sc.set_xticklabels([f'PC{i}' for i in range(1,6)], fontsize=7.5)
-ax_sc.set_ylabel('%', fontsize=7.5)
-ax_sc.set_title('Variance\nexplained', fontsize=8, pad=2)
-ax_sc.tick_params(labelsize=7.5)
-for sp in ['top','right']:   ax_sc.spines[sp].set_visible(False)
-for sp in ['left','bottom']: ax_sc.spines[sp].set_color('#CCCCCC')
-
-ax_d.set_title('D   PCA — SV genotype matrix  (NA imputed as 0.5)',
-               fontsize=TITLE_FS, fontweight='normal', loc='left', pad=8)
-
-# ════════ Panel E — Network ═══════════════════════════════════════════════════
-ax_e.set_facecolor('white')
-
+# ── E: similarity network ─────────────────────────────────────────────────────
+idx = [ALL.index(s) for s in SAMPLES]
+J = jac[np.ix_(idx, idx)]
 G = nx.Graph()
-for s in sample_cols:
-    G.add_node(s)
-for i, s1 in enumerate(sample_cols):
-    for j, s2 in enumerate(sample_cols):
-        if j <= i: continue
-        G.add_edge(s1, s2, weight=jac_net[i,j])
+G.add_nodes_from(SAMPLES)
+for i, a in enumerate(SAMPLES):
+    for j in range(i + 1, len(SAMPLES)):
+        G.add_edge(a, SAMPLES[j], weight=J[i, j])
 
-pos   = nx.spring_layout(G, weight='weight', seed=42, k=3.2, iterations=400)
-edges = list(G.edges())
-wts   = [G[u][v]['weight'] for u,v in edges]
-norm  = Normalize(vmin=min(wts), vmax=max(wts))
+pos = nx.spring_layout(G, weight='weight', seed=42, k=3.2, iterations=400)
+w = np.array([G[u][v]['weight'] for u, v in G.edges()])
+norm = Normalize(vmin=w.min(), vmax=w.max())
+for (u, v), wt in sorted(zip(G.edges(), w), key=lambda t: t[1]):
+    f = norm(wt)
+    ax_e.plot([pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
+              color=plt.cm.Purples(0.30 + f * 0.65), lw=0.6 + f * 7.5,
+              alpha=0.20 + f * 0.75, solid_capstyle='round', zorder=1)
 
-for (u,v), w in zip(edges, wts):
-    nx.draw_networkx_edges(G, pos, edgelist=[(u,v)], ax=ax_e,
-                           width=0.5 + norm(w)*6.5,
-                           alpha=0.15 + norm(w)*0.72,
-                           edge_color=[plt.cm.Purples(0.25 + norm(w)*0.65)])
+NODE_SCALE = 1.6
+sv_count = {s: tot[ALL.index(s)] for s in SAMPLES}
+for s in SAMPLES:
+    ax_e.scatter(*pos[s], s=sv_count[s] * NODE_SCALE, marker=smark(s), color=scol(s),
+                 edgecolors='white', linewidths=2, zorder=3)
 
-node_list  = list(G.nodes())
-node_sizes = [totals_net[s] for s in node_list]
-node_cols  = [sample_colors[s] for s in node_list]
-nx.draw_networkx_nodes(G, pos, nodelist=node_list, ax=ax_e,
-                       node_size=node_sizes, node_color=node_cols,
-                       edgecolors='white', linewidths=1.8)
+# labels pushed radially outward from the layout centre so they never sit on a node
+centre = np.mean([pos[s] for s in SAMPLES], axis=0)
+for s in SAMPLES:
+    v = np.array(pos[s]) - centre
+    v = v / (np.linalg.norm(v) + 1e-9)
+    r = np.sqrt(sv_count[s] * NODE_SCALE) / 2 + 10
+    ax_e.annotate(short(s), pos[s], xytext=(v[0] * r, v[1] * r), textcoords='offset points',
+                  ha='left' if v[0] > 0.3 else ('right' if v[0] < -0.3 else 'center'),
+                  va='bottom' if v[1] > 0.3 else ('top' if v[1] < -0.3 else 'center'),
+                  fontsize=POINT_FS, fontweight='bold', color='#222222', zorder=5)
 
-px = np.array([pos[s][0] for s in node_list])
-py = np.array([pos[s][1] for s in node_list])
-ntexts = []
-for s, x, y in zip(node_list, px, py):
-    t = ax_e.text(x, y, s, fontsize=10.5, color='#111111',
-                  fontweight='bold' if s in sea_cluster else 'normal',
-                  ha='center', va='center', zorder=6)
-    ntexts.append(t)
-
-adjust_text(ntexts, x=px, y=py, ax=ax_e,
-            expand_points=(2.8, 2.8), expand_text=(1.8, 1.8),
-            arrowprops=dict(arrowstyle='-', color='#CCCCCC', lw=0.9),
-            force_points=1.0, force_text=0.7, lim=500)
-
-for sv_n, label in [(400,'400'),(500,'500'),(600,'600')]:
-    ax_e.scatter([], [], s=sv_n, color='#CCCCCC',
-                 edgecolors='white', linewidths=1.2, label=f'{label} SVs')
-leg1 = ax_e.legend(title='Alt SV count', title_fontsize=10,
-                    fontsize=9.5, frameon=True, loc='lower left',
-                    framealpha=0.92, edgecolor='#DDDDDD')
-
-edge_legend = [
-    Line2D([0],[0], color=plt.cm.Purples(0.88), lw=5,   label='High similarity'),
-    Line2D([0],[0], color=plt.cm.Purples(0.58), lw=2.8, label='Mid similarity'),
-    Line2D([0],[0], color=plt.cm.Purples(0.32), lw=1.0, label='Low similarity'),
-]
-ax_e.legend(handles=edge_legend, title='Jaccard similarity',
-            title_fontsize=10, fontsize=9.5, frameon=True,
-            loc='lower right', framealpha=0.92, edgecolor='#DDDDDD')
-ax_e.add_artist(leg1)
+ax_e.set_aspect('equal', adjustable='datalim')
+ax_e.margins(0.16)
 ax_e.axis('off')
-ax_e.set_title('E   Haplotype similarity network',
-               fontsize=TITLE_FS, fontweight='normal', loc='left', pad=8)
+letter(ax_e, 'E', x=-0.02, y=1.02)
 
-# ── Save ──────────────────────────────────────────────────────────────────────
-fig.suptitle(
-    'P. falciparum structural variant summary and haplotype relationships',
-    fontsize=13, fontweight='normal', y=0.97, color='#222222'
-)
+lo, hi = int(tot[idx].min() // 50 * 50), int(np.ceil(tot[idx].max() / 50) * 50)
+size_h = [Line2D([0], [0], marker='o', ls='', color='#BDBDBD', markeredgecolor='white',
+                 markersize=np.sqrt(n * NODE_SCALE), label=f'{n:,}')
+          for n in (lo, (lo + hi) // 2, hi)]
+leg_s = ax_e.legend(handles=size_h, title='Alt SVs', loc='lower left',
+                    bbox_to_anchor=(-0.04, -0.10), frameon=False, labelspacing=1.3,
+                    borderpad=0.2, handletextpad=1.0, fontsize=16)
+edge_h = [Line2D([0], [0], color=plt.cm.Purples(0.30 + f * 0.65), lw=0.6 + f * 7.5,
+                 label=f'{w.min() + f * (w.max() - w.min()):.2f}') for f in (1, 0.5, 0.05)]
+ax_e.legend(handles=edge_h, title='Jaccard similarity', loc='lower right',
+            bbox_to_anchor=(1.07, -0.10), frameon=False, fontsize=16)
+ax_e.add_artist(leg_s)
 
-plt.savefig('sv_summary_figure.png', dpi=200, bbox_inches='tight', facecolor='white')
-plt.savefig('sv_summary_figure.tiff', dpi=300, bbox_inches='tight', facecolor='white')
+# ── Shared geographic legend under D and E ────────────────────────────────────
+geo_h = [Line2D([0], [0], marker=CONT_MARKER[CONTINENT[r]], ls='', markersize=17,
+                 color=REGION_COLORS[r], markeredgecolor='white', label=r)
+         for r in REGION_ORDER]
+geo_h.append(Line2D([0], [0], marker='D', ls='', markersize=15, color=REF_COLOR,
+                    markeredgecolor='#4D4D4D', label='Pf3D7 (reference)'))
+fig.legend(handles=geo_h, loc='lower center', bbox_to_anchor=(0.53, 0.005),
+           ncol=7, frameon=False, fontsize=18, title='Geographic origin',
+           title_fontsize=19, columnspacing=1.2, handletextpad=0.4)
+
+fig.savefig(f'{OUT}.png',  dpi=200, facecolor='white')
+fig.savefig(f'{OUT}.tiff', dpi=300, facecolor='white', pil_kwargs={'compression': 'tiff_lzw'})
+fig.savefig(f'{OUT}.pdf',  facecolor='white')
+print(f'Saved {OUT}.png / .tiff / .pdf')
