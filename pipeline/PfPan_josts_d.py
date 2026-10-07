@@ -492,47 +492,54 @@ def assess_variant_severity(consequences, details):
     else:
         return 'UNKNOWN'
 
-def calculate_josts_d(allele_counts_pop1, allele_counts_pop2):
-    """Calculate Jost's D between two populations"""
-    # Get allele frequencies
+def calculate_josts_d(allele_counts_pop1, allele_counts_pop2, n_pops=2):
+    """Jost's D between two populations.
+
+    D = [(Ht - Hs) / (1 - Hs)] * [n / (n - 1)]
+
+    Two corrections vs the earlier version:
+      * the n/(n-1) term was missing, so values came out at D/2 (for n=2 the
+        bracketed part saturates at 0.5, never 1)
+      * the guard excluded hs_mean == 0, which conflates "no variation
+        anywhere" (D=0) with "fixed for DIFFERENT alleles" (D=1). The second
+        is maximum differentiation and was being scored as zero.
+    """
     af1 = allele_counts_pop1.to_frequencies()
     af2 = allele_counts_pop2.to_frequencies()
-    
-    # Handle cases with different number of alleles
+
     if af1.shape[1] < 2 or af2.shape[1] < 2:
         return np.full(len(af1), np.nan)
-    
-    # For biallelic sites, use reference allele frequency
-    p1 = af1[:, 0]  # Reference allele frequency in pop1
-    p2 = af2[:, 0]  # Reference allele frequency in pop2
-    
-    # Handle invalid frequencies
-    valid = ~np.isnan(p1) & ~np.isnan(p2) & (p1 >= 0) & (p1 <= 1) & (p2 >= 0) & (p2 <= 1)
-    
+
+    p1 = af1[:, 0]
+    p2 = af2[:, 0]
+
+    valid = (~np.isnan(p1) & ~np.isnan(p2)
+             & (p1 >= 0) & (p1 <= 1) & (p2 >= 0) & (p2 <= 1))
     if not np.any(valid):
         return np.full(len(af1), np.nan)
-    
-    # Calculate diversity measures for biallelic sites
-    # Within-population diversity: Hs = 2*p*(1-p)
-    hs1 = 2 * p1 * (1 - p1)
-    hs2 = 2 * p2 * (1 - p2)
-    hs_mean = (hs1 + hs2) / 2
-    
-    # Total diversity
-    p_total = (p1 + p2) / 2
-    ht = 2 * p_total * (1 - p_total)
-    
-    # Jost's D = (Ht - Hs) / (1 - Hs)
-    josts_d = np.where(
-        (hs_mean >= 1) | (hs_mean == 0), 
-        0, 
-        np.maximum(0, (ht - hs_mean) / (1 - hs_mean))
-    )
-    
-    # Set invalid positions to NaN
+
+    hs = (2 * p1 * (1 - p1) + 2 * p2 * (1 - p2)) / 2
+    pt = (p1 + p2) / 2
+    ht = 2 * pt * (1 - pt)
+
+    with np.errstate(invalid='ignore', divide='ignore'):
+        d = (ht - hs) / (1 - hs) * (n_pops / (n_pops - 1))
+
+    josts_d = np.where(hs >= 1, 0.0, np.maximum(0.0, d))
+    josts_d = np.asarray(josts_d, dtype=float)
     josts_d[~valid] = np.nan
-    
     return josts_d
+
+
+def as_haploid(gt):
+    """scikit-allel pads haploid calls to [x, -1] and is_missing() then counts
+    EVERY haploid genotype as missing, so is_hom_alt()/is_het() never fire and
+    n_alt_focal is structurally 0. Detect that and return a HaplotypeArray."""
+    arr = np.asarray(gt)
+    if arr.ndim == 3 and arr.shape[2] == 2 and np.all(arr[:, :, 1] == -1):
+        return allel.HaplotypeArray(arr[:, :, 0]), True
+    return gt, False
+
 
 def process_chromosome_chunk(args):
     """Process a chunk of variants for Jost's D calculation"""
@@ -546,7 +553,10 @@ def process_chromosome_chunk(args):
         # Get data for this chunk
         chunk_slice = slice(start_idx, end_idx)
         
-        gt_chunk = allel.GenotypeChunkedArray(callset['calldata']['GT'][chunk_slice])
+        gt_raw = callset['calldata']['GT'][chunk_slice]
+        gt_chunk, IS_HAP = as_haploid(gt_raw)
+        if not IS_HAP:
+            gt_chunk = allel.GenotypeChunkedArray(gt_raw)
         pos_chunk = callset['variants/POS'][chunk_slice]
         ref_chunk = callset['variants/REF'][chunk_slice]
         alt_chunk = callset['variants/ALT'][chunk_slice]
@@ -585,6 +595,9 @@ def process_chromosome_chunk(args):
             # Calculate allele counts
             gt_focal = gt_chunk.take(focal_indices, axis=1)
             gt_others = gt_chunk.take(other_indices, axis=1)
+            if IS_HAP:
+                gt_focal = allel.HaplotypeArray(gt_focal)
+                gt_others = allel.HaplotypeArray(gt_others)
             
             ac_focal = gt_focal.count_alleles()
             ac_others = gt_others.count_alleles()
@@ -594,15 +607,27 @@ def process_chromosome_chunk(args):
             
             # Calculate genotype statistics for focal population
             n_total_focal = len(focal_indices)
-            n_ref_focal = np.sum(gt_focal.is_hom_ref(), axis=1)
-            n_alt_focal = np.sum(gt_focal.is_hom_alt() | gt_focal.is_het(), axis=1)
-            n_missing_focal = np.sum(gt_focal.is_missing(), axis=1)
+            if IS_HAP:
+                a = np.asarray(gt_focal)
+                n_ref_focal = np.sum(a == 0, axis=1)
+                n_alt_focal = np.sum(a > 0, axis=1)
+                n_missing_focal = np.sum(a < 0, axis=1)
+            else:
+                n_ref_focal = np.sum(gt_focal.is_hom_ref(), axis=1)
+                n_alt_focal = np.sum(gt_focal.is_hom_alt() | gt_focal.is_het(), axis=1)
+                n_missing_focal = np.sum(gt_focal.is_missing(), axis=1)
             
             # Calculate genotype statistics for other populations combined
             n_total_others = len(other_indices)
-            n_ref_others = np.sum(gt_others.is_hom_ref(), axis=1)
-            n_alt_others = np.sum(gt_others.is_hom_alt() | gt_others.is_het(), axis=1)
-            n_missing_others = np.sum(gt_others.is_missing(), axis=1)
+            if IS_HAP:
+                b = np.asarray(gt_others)
+                n_ref_others = np.sum(b == 0, axis=1)
+                n_alt_others = np.sum(b > 0, axis=1)
+                n_missing_others = np.sum(b < 0, axis=1)
+            else:
+                n_ref_others = np.sum(gt_others.is_hom_ref(), axis=1)
+                n_alt_others = np.sum(gt_others.is_hom_alt() | gt_others.is_het(), axis=1)
+                n_missing_others = np.sum(gt_others.is_missing(), axis=1)
             
             # Handle ALT alleles
             if alt_chunk.ndim > 1:
