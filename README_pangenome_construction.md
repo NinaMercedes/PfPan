@@ -80,7 +80,7 @@ Note here the 3D7 reference here in `pf3k_seq_v2.txt` was renamed, the file used
 
 Two complementary tools are used to characterise the pangenome: **panacus** for growth curve analysis and **vg stats** for basic graph metrics. The GFA graph is copied and decompressed into `stats_panacus/` for use by panacus. If the haplotypes file (`paths.haplotypes.txt`) does not already exist, it is generated automatically from the first column of the seq file.
 
-#### 3a. Panacus — Base Pair Coverage
+#### 2a. Panacus — Base Pair Coverage
 
 Runs `panacus hist` to compute a histogram of base pair coverage across haplotypes, then `panacus histgrowth` to model how much sequence is core, soft-core, shell, or private as haplotypes are incrementally added to the pangenome. Results are plotted as a growth curve PDF.
 
@@ -101,7 +101,7 @@ Growth curve coverage thresholds (`-l 1,2,1,1,1 -q 0,0,1,0.5,0.1`):
 | `bp.growth` | 1.2K | Pangenome growth table for base pairs — core/soft-core/shell/private breakdown |
 | `panacus_growth_bp.pdf` | 20K | Growth curve plot for base pairs |
 
-#### 3b. Panacus — Node Coverage
+#### 2b. Panacus — Node Coverage
 
 Runs `panacus histgrowth` at the graph node (segment) level, using the same coverage thresholds as above, and additionally computes pairwise node-level similarity between all haplotypes.
 
@@ -112,7 +112,7 @@ Runs `panacus histgrowth` at the graph node (segment) level, using the same cove
 | `node.growth` | 1.1K | Pangenome growth table at node level |
 | `panacus_growth_node.pdf` | 20K | Growth curve plot for nodes |
 
-#### 3c. vg Stats — Basic Graph Metrics
+#### 2c. vg Stats — Basic Graph Metrics
 
 Runs `vg stats` on the clipped GBZ graph to report basic graph-level summary statistics including total sequence length, number of nodes, number of edges, and snarl counts.
 
