@@ -23,9 +23,9 @@ Three scripts run in order for the benchmarking. Two upstream mapping-and-callin
 | `cactus` | `vg` (giraffe, surject, pack, call, paths), samtools, bcftools, bgzip | `envs/cactus.yml` |
 | `fastq2matrix` | GATK, bcftools, samtools, bwa, tabix | `envs/fastq2matrix.yml` |
 | `truvari` | truvari, bedtools, rtg-tools (vcfeval, vcfdecompose) | `envs/truvari.yml` |
-| `delly` | Delly | `envs/delly.yml` (to add) |
-| `manta` | Manta | `envs/manta.yml` (to add) |
-| `dysgu` | Dysgu | `envs/dysgu.yml` (to add) |
+| `delly` | Delly | `envs/delly.yml`  |
+| `manta` | Manta | `envs/manta.yml` |
+| `dysgu` | Dysgu | `envs/dysgu.yml` |
 
 Tool versions used (from the Methods; the YAMLs should agree with these):
 
@@ -38,22 +38,15 @@ Tool versions used (from the Methods; the YAMLs should agree with these):
 | bcftools | v1.12 | Truvari | v5.3.0  |
 | Cactus-pangenome | v2.9.3 | | |
 
-Not covered by a conda YAML, so record these separately (for example in the same folder or in Methods):
+Not covered by a conda YAML, so install these separately:
 
 - **Cactus-pangenome v2.9.3**: a Python virtualenv (`--cactus-venv`, `cactus-bin-v2.9.3/venv-cactus-v2.9.3`), not a conda environment.
 - **`vt`**: a standalone binary (`--vt-bin`), used only for the small-variant repeat-tract masks. Record the commit or version.
-- **paftools / minimap2 and SVIM-asm**: used to make the truth sets before this pipeline. Record their versions too.
 
-To export each environment (run with the environment active, or use `-n`):
-
+Install conda environments:
 ```bash
-mkdir -p envs
-for e in cactus fastq2matrix truvari delly manta dysgu; do
-    conda env export -n "$e" --no-builds > envs/"$e".yml
-done
+conda env create -f envs/<name>.yml
 ```
-
-`--no-builds` keeps the YAML portable across machines. Drop it if exact build strings are needed to reproduce the environment. Recreate an environment with `conda env create -f envs/<name>.yml`.
 
 ---
 
