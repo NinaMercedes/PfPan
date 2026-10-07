@@ -51,7 +51,7 @@ Pfpan/
 │   ├── PfPan_SVIM_ASM.py                       ← assembly truth set (Step 2)
 │   ├── PfPan_linear_map_and_call.py            ← linear mapping pipeline (Step 3a)
 │   ├── PfPan_map_and_call.py                   ← pangenome mapping pipeline (Step 3b)
-│   └── PfPan_variant_evaluation.py             ← benchmarking (Step 4)
+│   └── full_pipeline.py             ← benchmarking (Step 4)
 │
 ├── analysis/
 │   ├── PfPan_variation.R                       ← variation analysis
