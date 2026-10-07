@@ -12,7 +12,7 @@ Filtering reproduces the R process_variants() step exactly:
   missing_frac <= 0.9, AF != 0, |LEN| < 10,000, then classify by LEN.
 
 Usage:
-    python fig2_sv_summary.py PfPan_all_variants_info_GT.tsv  [out_prefix]
+    python PfPan_pca_network.py PfPan_all_variants_info_GT.tsv  [out_prefix]
 """
 
 import sys
