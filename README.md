@@ -69,50 +69,6 @@ Pfpan/
 
 ---
 
-## Quick Start
-
-### 1. Build the pangenome graph
-
-```bash
-conda activate cactus
-python ./pipeline/construct_PfPan.py --download   # includes assembly download
-```
-
-See [Pangenome Construction](README_pangenome_construction.md) for full usage and step-skipping options.
-
-### 2. Characterise variation
-
-Run Stage 1 (VCF preprocessing) from [Variation Analysis](README_pfpan_variation_analysis.md), then the R and Python analysis scripts.
-
-### 3. Generate the assembly-based truth set (once)
-
-```bash
-python ./pipeline/PfPan_SVIM_ASM.py
-```
-
-### 4. Run variant calling pipelines
-
-```bash
-# Linear reference
-conda activate <fastq2matrix_env>
-python ./pipeline/PfPan_linear_map_and_call.py --samples-file fastqs.txt --skip-delly
-conda activate delly
-python ./pipeline/PfPan_linear_map_and_call.py --samples-file fastqs.txt --skip-fastq2vcf
-
-# Pangenome
-conda activate cactus
-python ./pipeline/PfPan_map_and_call.py --sample <SAMPLE>
-```
-
-### 5. Benchmark and evaluate
-
-```bash
-python ./pipeline/PfPan_variant_evaluation.py
-```
-
-See [Mapping & Calling Benchmarking](README_mapping_calling_benchmarking.md) for individual step options.
-
----
 
 ## Dependencies
 
