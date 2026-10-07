@@ -148,8 +148,10 @@ python PfPan_josts_d.py \
 | `josts_d_plots/` | Genome-wide Manhattan-style plots |
 
 ---
+## Stage 4 — SV Genotyping 
+Structural variant genotyping was performed using vg call - SVs were merged using `bcftools merge -m id ` and subsequently filtered using `qc_filter.sh`. Downstream analysis included Jost's D analysis of the SV loci as above from the file output by the filtering script.
 
-## Stage 4 — CNV Calling (`PfPan_cnv_call.py`)
+## Stage 5 — CNV Calling (`PfPan_cnv_call.py`)
 
 **Required packages:** `pandas`, `numpy`
 
