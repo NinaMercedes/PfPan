@@ -939,7 +939,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     ap.add_argument(
         "--strains", nargs="+",
         default=["PfDd2", "Pf7G8", "PfCD01", "PfGA01", "PfGB4", "PfGN01", "PfHB3",
-                 "PfIT", "PfKE01", "PfKH01", "PfKH02", "PfML01", "PfSN01", "PfTG01"],
+                 "PfIT", "PfKE01", "PfKH01", "PfKH02", "PfML01", "PfSN01"],
         help="Strains to process")
 
     ap.add_argument("--seq-file", type=Path,
