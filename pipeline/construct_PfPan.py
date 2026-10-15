@@ -217,11 +217,11 @@ def panacus_bp(gfa_path: str):
         f"> {bp_dir}/bp.growth"
     )
 
-    run(
-        f"python {PIPELINE_DIR}/replot_panacus.py {bp_dir}/bp.growth "
-        f"> {bp_dir}/panacus_growth_bp.pdf"
-    )
-    log.info("BP growth curve: %s/panacus_growth_bp.pdf", bp_dir)
+   # run(
+    #    f"python {PIPELINE_DIR}/replot_panacus.py {bp_dir}/bp.growth "
+     #   f"> {bp_dir}/panacus_growth_bp.pdf"
+   # )
+    # log.info("BP growth curve: %s/panacus_growth_bp.pdf", bp_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -243,10 +243,10 @@ def panacus_node(gfa_path: str):
         f"> {node_dir}/node.growth"
     )
 
-    run(
-        f"python {PIPELINE_DIR}/replot_panacus.py {node_dir}/node.growth "
-        f"> {node_dir}/panacus_growth_node.pdf"
-    )
+   # run(
+    #    f"python {PIPELINE_DIR}/replot_panacus.py {node_dir}/node.growth "
+     #   f"> {node_dir}/panacus_growth_node.pdf"
+    #)
 
 
 # ---------------------------------------------------------------------------
