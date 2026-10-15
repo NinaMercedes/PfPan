@@ -14,12 +14,11 @@ Usage:
 Requirements:
     - cactus virtualenv at CACTUS_VENV (see config below)
     - panacus, vg available on PATH (or loaded via module)
-    - Existing pipeline scripts: wget_pf3k_fasta.py, make_seqtxt.py, replot_panacus.py
+    - Existing pipeline scripts: wget_pf3k_fasta.py, make_seqtxt.py
 """
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -54,7 +53,7 @@ PF3K_FTP_URL       = (
 
 # Panacus settings
 PANACUS_STATS_DIR  = str(Path(__file__).resolve().parent.parent / "stats_panacus")
-HAPLOTYPES_FILE    = str(Path(__file__).resolve().parent.parent / "stats_panacus" / "paths.haplotypes.txt")  # must exist before running stats
+HAPLOTYPES_FILE    = str(Path(__file__).resolve().parent.parent / "stats_panacus" / "paths.haplotypes.txt")  # generated from seq file if missing
 HIST_LEVELS        = "1,2,1,1,1"
 HIST_QUANTILES     = "0,0,1,0.5,0.1"
 
@@ -80,7 +79,7 @@ log = logging.getLogger(__name__)
 def run(cmd: str, shell: bool = True, check: bool = True, env=None, cwd=None) -> subprocess.CompletedProcess:
     """Run a shell command, stream output, and raise on failure."""
     log.info(f"Running: {cmd}")
-    result = subprocess.run(
+    return subprocess.run(
         cmd,
         shell=shell,
         check=check,
@@ -88,7 +87,6 @@ def run(cmd: str, shell: bool = True, check: bool = True, env=None, cwd=None) ->
         env=env,
         cwd=cwd,
     )
-    return result
 
 
 def run_in_cactus_venv(cmd: str) -> subprocess.CompletedProcess:
@@ -102,7 +100,7 @@ def run_in_cactus_venv(cmd: str) -> subprocess.CompletedProcess:
     return run(wrapped)
 
 
-def ensure_dir(path: str) -> Path:
+def ensure_dir(path) -> Path:
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     return p
@@ -194,16 +192,15 @@ def build_pangenome():
 
 def panacus_bp(gfa_path: str):
     """
-    Run panacus hist + histgrowth for base-pair coverage, then plot.
+    Run panacus hist + histgrowth for base-pair coverage.
 
-    Growth curve parameters:
+    Growth parameters:
       -l 1,2,1,1,1      : coverage level thresholds
       -q 0,0,1,0.5,0.1  : quantile thresholds (core / soft-core / shell / private)
       -S                 : stratified output
       -a                 : cumulative (all-haplotype) output
     """
-    bp_dir = Path(PANACUS_STATS_DIR) / "bp"
-    ensure_dir(bp_dir)
+    bp_dir = ensure_dir(Path(PANACUS_STATS_DIR) / "bp")
     log.info("--- Panacus: base-pair coverage (output: %s) ---", bp_dir)
 
     run(f"panacus hist --count bp {gfa_path} > {bp_dir}/bp.hist")
@@ -216,12 +213,7 @@ def panacus_bp(gfa_path: str):
         f"-s {HAPLOTYPES_FILE} "
         f"> {bp_dir}/bp.growth"
     )
-
-   # run(
-    #    f"python {PIPELINE_DIR}/replot_panacus.py {bp_dir}/bp.growth "
-     #   f"> {bp_dir}/panacus_growth_bp.pdf"
-   # )
-    # log.info("BP growth curve: %s/panacus_growth_bp.pdf", bp_dir)
+    log.info("BP growth table: %s/bp.growth", bp_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -229,9 +221,8 @@ def panacus_bp(gfa_path: str):
 # ---------------------------------------------------------------------------
 
 def panacus_node(gfa_path: str):
-    """Run panacus histgrowth + similarity at the graph-node level."""
-    node_dir = Path(PANACUS_STATS_DIR) / "node"
-    ensure_dir(node_dir)
+    """Run panacus histgrowth at the graph-node level."""
+    node_dir = ensure_dir(Path(PANACUS_STATS_DIR) / "node")
     log.info("--- Panacus: node coverage (output: %s) ---", node_dir)
 
     run(
@@ -242,11 +233,7 @@ def panacus_node(gfa_path: str):
         f"-s {HAPLOTYPES_FILE} "
         f"> {node_dir}/node.growth"
     )
-
-   # run(
-    #    f"python {PIPELINE_DIR}/replot_panacus.py {node_dir}/node.growth "
-     #   f"> {node_dir}/panacus_growth_node.pdf"
-    #)
+    log.info("Node growth table: %s/node.growth", node_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +261,8 @@ def vg_stats():
 def run_statistics():
     """
     Orchestrate all pangenome statistics steps:
-      3a. Panacus base-pair coverage & growth curve
-      3b. Panacus node coverage & growth curve + similarity
+      3a. Panacus base-pair coverage & growth
+      3b. Panacus node coverage & growth
       3c. vg stats
     """
     log.info("=== Step 3: Pangenome statistics ===")
